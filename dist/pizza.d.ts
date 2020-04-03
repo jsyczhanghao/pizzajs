@@ -1,0 +1,31 @@
+import { VNode, Options } from './interface';
+import EventEmitter from './event';
+import register from './register';
+declare class Pizza extends EventEmitter {
+    $options: Options;
+    $propsData: object;
+    protected $methods: object;
+    protected $data: object;
+    protected $components: object;
+    $mounted: boolean;
+    $destroyed: boolean;
+    protected _vnode: VNode;
+    protected _vnodeFn: any;
+    protected _nextFns: any[];
+    protected _mountElement?: HTMLElement;
+    $el?: HTMLElement | Text | Comment | DocumentFragment;
+    constructor(options: Options);
+    protected _init(): void;
+    $set(key: string, value: any): void;
+    $get(key: string, _default?: any): any;
+    _injectHooks(): void;
+    $emit(name: any, ...args: any[]): void;
+    $invoke(key: any, ...args: any[]): any;
+    $nextTick(fn: Function): void;
+    $update: () => void;
+    _render(): void;
+    $mount(element?: HTMLElement): boolean;
+    $destroy(): void;
+    static register: typeof register;
+}
+export default Pizza;

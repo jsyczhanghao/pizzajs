@@ -1,0 +1,29 @@
+{
+  "name": "fuck",
+  "version": "0.0.1",
+  "description": "a mini's engine",
+  "main": "dist/fuck.js",
+  "scripts": {
+    "dev": "rollup -w -c scripts/examples.config.js",
+    "build": "rollup -c scripts/build.config.js",
+    "test": "mocha test"
+  },
+  "author": "js.zhang",
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^7.1.1",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-html": "^0.2.1",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "rollup-plugin-typescript2": "^0.26.0",
+    "rollup-plugin-uglify": "^6.0.4",
+    "tslint": "^6.1.0",
+    "tslint-eslint-rules": "^5.4.0",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "core-js": "^3.6.4",
+    "vue": "^2.6.11"
+  }
+}

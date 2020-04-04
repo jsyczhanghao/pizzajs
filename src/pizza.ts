@@ -64,7 +64,7 @@ class Pizza extends EventEmitter {
 
   $emit(name, ...args) {
     super.$emit(name, ...args);
-    super.$emit(`props:${name}`, ...args);
+    super.$emit(`PROPS_EVENT:${name}`, ...args);
   }
 
   $invoke(key, ...args) {
@@ -72,13 +72,14 @@ class Pizza extends EventEmitter {
   }
 
   $nextTick(fn: Function) {
-    this._nextFns.push(fn);
+    this.$once('$nextTick', fn);
   }
 
   $update = helper.util.debounce(function () {
     if (!this.$mounted || this.$destroyed) return false;
     this._render();
     this.$emit('hook:updated');
+    this.$emit('$nextTick');
   }, 10)
 
   _render() {
@@ -89,8 +90,6 @@ class Pizza extends EventEmitter {
     }
 
     this._vnode = patchVNode(vnode, this._vnode);
-    this._nextFns.forEach((fn) => fn.call(this));
-    this._nextFns.length = 0;
   }
 
   $mount(element?: HTMLElement) {
@@ -105,6 +104,7 @@ class Pizza extends EventEmitter {
     this.$el = this._vnode.el;
     this.$mounted = true;
     this.$emit('hook:mounted');
+    this.$emit('$nextTick');
   }
 
   $destroy() {

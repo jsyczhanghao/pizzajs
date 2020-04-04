@@ -192,24 +192,37 @@
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            (this.$events[name] || []).forEach(function (fn) { return fn.apply(_this, args); });
+            (this.$events[name] || []).slice(0).forEach(function (fn) { return fn.call.apply(fn, __spreadArrays([_this], args)); });
         };
-        EventEmitter.prototype.$off = function (name) {
-            var _this = this;
-            if (/:$/.test(name)) {
-                helper.util.map(this.$events, function (events, key) {
-                    key.indexOf(name) == 0 && delete _this.$events[key];
-                });
-            }
-            else {
+        EventEmitter.prototype.$off = function (name, fn) {
+            if (!fn) {
                 delete this.$events[name];
             }
+            else {
+                var i = this.$events[name].indexOf(fn);
+                i > -1 && this.$events[name].splice(i, 1);
+            }
+        };
+        EventEmitter.prototype.$offByPrefix = function (name) {
+            var _this = this;
+            helper.util.map(this.$events, function (events, key) {
+                key.indexOf(name) == 0 && _this.$off(name);
+            });
         };
         EventEmitter.prototype.$once = function (name, fn) {
+            var _this = this;
+            var f = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                fn.call.apply(fn, __spreadArrays([_this], args));
+                _this.$off(name, f);
+            };
+            this.$on(name, f);
         };
         return EventEmitter;
     }());
-    // this.$invoke('EVENT_CALL', 'click', fn);
 
     var EMPTY_VNODE = {};
 
@@ -432,10 +445,11 @@
         PatchType[PatchType["NONE"] = 4] = "NONE";
     })(PatchType || (PatchType = {}));
 
+    var PROPS_EVENT = 'PROPS_EVENT:';
     function on(instance, events) {
         if (events === void 0) { events = {}; }
         helper.util.map(events, function (event, name) {
-            instance.$on("props:" + name, event);
+            instance.$on("" + PROPS_EVENT + name, event);
         });
     }
     function patchComponent (now, old) {
@@ -452,7 +466,7 @@
         else if (!helper.util.same(now.props, old.props)) {
             now.el = old.el;
             instance.$propsData = now.props;
-            instance.$off('props:');
+            instance.$offByPrefix(PROPS_EVENT);
             on(instance, now.events);
             instance.$update();
             type = PatchType.UPDATE;
@@ -615,6 +629,7 @@
                     return false;
                 this._render();
                 this.$emit('hook:updated');
+                this.$emit('$nextTick');
             }, 10);
             _this.$options = new Options(options);
             _this.$propsData = propsData;
@@ -680,7 +695,7 @@
                 args[_i - 1] = arguments[_i];
             }
             _super.prototype.$emit.apply(this, __spreadArrays([name], args));
-            _super.prototype.$emit.apply(this, __spreadArrays(["props:" + name], args));
+            _super.prototype.$emit.apply(this, __spreadArrays(["PROPS_EVENT:" + name], args));
         };
         Pizza.prototype.$invoke = function (key) {
             var _a;
@@ -691,17 +706,14 @@
             return (_a = this.$methods[key]).call.apply(_a, __spreadArrays([this], args));
         };
         Pizza.prototype.$nextTick = function (fn) {
-            this._nextFns.push(fn);
+            this.$once('$nextTick', fn);
         };
         Pizza.prototype._render = function () {
-            var _this = this;
             var vnode = this.$options.render.call(this);
             if (this._mountElement) {
                 vnode = { el: this._mountElement, children: [vnode] };
             }
             this._vnode = patchVNode$1(vnode, this._vnode);
-            this._nextFns.forEach(function (fn) { return fn.call(_this); });
-            this._nextFns.length = 0;
         };
         Pizza.prototype.$mount = function (element) {
             if (this.$mounted)
@@ -714,6 +726,7 @@
             this.$el = this._vnode.el;
             this.$mounted = true;
             this.$emit('hook:mounted');
+            this.$emit('$nextTick');
         };
         Pizza.prototype.$destroy = function () {
             this.$destroyed = true;
@@ -813,8 +826,17 @@
         lifetimes: {
             mounted: function () {
                 var _this = this;
+                this.$nextTick(function () {
+                    console.log(1);
+                });
+                this.$nextTick(function () {
+                    console.log(3);
+                });
                 setTimeout(function () {
                     _this.users = _.slice(1);
+                    _this.$nextTick(function () {
+                        console.log(2);
+                    });
                 }, 5000);
             }
         },

@@ -15,8 +15,17 @@ export default {
 
   lifetimes: {
     mounted() {
+      this.$nextTick(() => {
+        console.log(1);
+      })
+      this.$nextTick(() => {
+        console.log(3);
+      })
       setTimeout(() => {
         this.users = list.slice(1);
+        this.$nextTick(() => {
+          console.log(2);
+        });
       }, 5000);
     }
   },

@@ -3,9 +3,11 @@ import VNode from '../vnode';
 import helper from '../../helper';
 import Pizza from '../../pizza';
 
+const PROPS_EVENT = 'PROPS_EVENT:';
+
 function on(instance, events: object = {}) {
   helper.util.map(events, (event, name) => {
-    instance.$on(`props:${name}`, event);
+    instance.$on(`${PROPS_EVENT}${name}`, event);
   });
 }
 
@@ -25,7 +27,7 @@ export default function (now: VNode, old: VNode) : Patch{
   } else if (!helper.util.same(now.props, old.props)) {
     now.el = old.el;
     instance.$propsData = now.props;
-    instance.$off('props:');
+    instance.$offByPrefix(PROPS_EVENT);
     on(instance, now.events);
     instance.$update();
     type = PatchType.UPDATE;

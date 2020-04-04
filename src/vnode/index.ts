@@ -1,7 +1,9 @@
-import makeVnodeFn from './fn';
-import vnodePatch from './patch';
+import makeVNodeFn from './fn';
+import patchVNode from './patch';
+import VNode from './vnode';
 
 export {
-  makeVnodeFn,
-  vnodePatch,
-}
+  makeVNodeFn,
+  patchVNode,
+  VNode,
+};

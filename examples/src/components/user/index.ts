@@ -1,7 +1,9 @@
-import template from './user.pxml';
+import template from './index.pxml';
+import style from './index.css';
 
 export default {
   template,
+  style,
   props: {
     info: {}
   },

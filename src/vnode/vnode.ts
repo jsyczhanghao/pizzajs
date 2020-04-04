@@ -1,4 +1,5 @@
-import Options from "./options";
+
+import Options, { OptionsData } from "../options";
 import Pizza from "../pizza";
 
 export default interface VNode {
@@ -8,10 +9,9 @@ export default interface VNode {
   readonly props?: object;
   readonly children?: VNode[];
   readonly events?: object;
-  readonly componentOptions?: Options;
+  readonly componentOptions?: OptionsData;
   componentInstance?: Pizza;
   readonly isComment?: boolean;
-  readonly isCopy?: boolean;
   el?: any;
 }
 

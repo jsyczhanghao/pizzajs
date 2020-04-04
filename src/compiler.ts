@@ -1,4 +1,4 @@
-import { VNode } from './interface';
+import { VNode } from './vnode';
 
 class Compiler {
   readonly html: string;
@@ -47,7 +47,7 @@ class Compiler {
       } else if (comment) {
         this.now.children.push({
           isComment: true,
-          text: comment || ' ',
+          text: comment
         });
       } else if (text.trim()) {
         this.now.children.push({

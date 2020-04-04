@@ -13,6 +13,14 @@ export default {
     users: list
   },
 
+  lifetimes: {
+    mounted() {
+      setTimeout(() => {
+        this.users = list.slice(1);
+      }, 5000);
+    }
+  },
+
   methods: {
     onUserItemClick(...args) {
       console.log(args);

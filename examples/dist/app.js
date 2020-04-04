@@ -51,29 +51,19 @@
         return r;
     }
 
-    var EMPTY_VNODE = {};
-    //# sourceMappingURL=vnode.js.map
-
-    var PatchType;
-    (function (PatchType) {
-        PatchType[PatchType["ADD"] = 0] = "ADD";
-        PatchType[PatchType["DEL"] = 1] = "DEL";
-        PatchType[PatchType["UPDATE"] = 2] = "UPDATE";
-        PatchType[PatchType["BATCH"] = 3] = "BATCH";
-        PatchType[PatchType["NONE"] = 4] = "NONE";
-    })(PatchType || (PatchType = {}));
-    //# sourceMappingURL=patch.js.map
-
     var util = {
         proxy: function (context, object, getter, setter) {
             this.keys(object).forEach(function (key) {
-                Object.defineProperty(context, key, __assign({ get: function () { return getter.call(context, key); } }, (setter ? { set: function () {
+                Object.defineProperty(context, key, {
+                    get: function () { return getter.call(context, key); },
+                    set: setter ? function () {
                         var args = [];
                         for (var _i = 0; _i < arguments.length; _i++) {
                             args[_i] = arguments[_i];
                         }
                         return setter.call.apply(setter, __spreadArrays([context, key], args));
-                    } } : {})));
+                    } : function () { }
+                });
             });
         },
         debounce: function (fn, wait) {
@@ -89,15 +79,21 @@
         obj2str: function (obj) {
             return '{' + Object.keys(obj).map(function (key) { return "\"" + key + "\": " + obj[key]; }).join(',') + '}';
         },
-        each: function (obj, fn) {
+        map: function (obj, fn) {
             if (obj === void 0) { obj = []; }
-            if ('length' in obj) {
-                [].forEach.call(obj, fn);
+            if (typeof obj == 'number') {
+                var _ = [], i = 0;
+                while (i++ < obj)
+                    _.push(i);
+                return _;
+            }
+            else if ('length' in obj) {
+                return [].map.call(obj, fn);
             }
             else {
-                for (var key in obj) {
-                    fn.call(obj, obj[key], key);
-                }
+                return this.keys(obj).map(function (key) {
+                    return fn(obj[key], key);
+                });
             }
         },
         keys: function (object) {
@@ -124,7 +120,6 @@
             return true;
         }
     };
-    //# sourceMappingURL=util.js.map
 
     var dom = {
         createElement: function (node) {
@@ -137,8 +132,8 @@
         updateElement: function (node, attrs, listeners) {
             var _this = this;
             //@ts-ignore
-            attrs && util.each(attrs, function (val, key) { return key == 'value' ? (node.value = val) : _this.setAttr(node, key, val); });
-            listeners && util.each(listeners, function (fn, key) { return _this.on(node, key, fn); });
+            attrs && util.map(attrs, function (val, key) { return key == 'value' ? (node.value = val) : _this.setAttr(node, key, val); });
+            listeners && util.map(listeners, function (fn, key) { return _this.on(node, key, fn); });
             return node;
         },
         setAttr: function (node, name, value) {
@@ -175,13 +170,48 @@
             el && el.remove();
         }
     };
-    //# sourceMappingURL=dom.js.map
 
-    var Helper = {
+    var helper = {
         util: util,
         dom: dom,
     };
-    //# sourceMappingURL=index.js.map
+
+    var EventEmitter = /** @class */ (function () {
+        function EventEmitter() {
+            this.$events = {};
+        }
+        EventEmitter.prototype.$on = function (name, fn) {
+            var _a;
+            var events = (_a = this.$events[name]) !== null && _a !== void 0 ? _a : [];
+            events.push(fn);
+            this.$events[name] = events;
+        };
+        EventEmitter.prototype.$emit = function (name) {
+            var _this = this;
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            (this.$events[name] || []).forEach(function (fn) { return fn.apply(_this, args); });
+        };
+        EventEmitter.prototype.$off = function (name) {
+            var _this = this;
+            if (/:$/.test(name)) {
+                helper.util.map(this.$events, function (events, key) {
+                    key.indexOf(name) == 0 && delete _this.$events[key];
+                });
+            }
+            else {
+                delete this.$events[name];
+            }
+        };
+        EventEmitter.prototype.$once = function (name, fn) {
+        };
+        return EventEmitter;
+    }());
+    // this.$invoke('EVENT_CALL', 'click', fn);
+
+    var EMPTY_VNODE = {};
 
     var Compiler = /** @class */ (function () {
         function Compiler(html) {
@@ -222,7 +252,7 @@
                 else if (comment) {
                     this.now.children.push({
                         isComment: true,
-                        text: comment || ' ',
+                        text: comment
                     });
                 }
                 else if (text.trim()) {
@@ -249,7 +279,15 @@
         Compiler.ATTR_REPEXP = /\s*(\S+?)="([^"]+)"/g;
         return Compiler;
     }());
-    //# sourceMappingURL=compiler.js.map
+
+    var config = {
+        logo: 'v',
+        prefixs: {
+            event: '@',
+            bind: ':'
+        },
+        delimitter: ['{{', '}}'],
+    };
 
     var COMPONENT_NAME_TEST = /[a-z][a-z0-9]*(-[a-z]+)+/;
     var COMPONENTS = {};
@@ -258,57 +296,41 @@
             return COMPONENTS[name];
         if (!COMPONENT_NAME_TEST.test(name))
             throw new Error("Component[" + name + "] is not valid, please register a correct component such as [xx-xx]");
-        var Component = COMPONENTS[name] = options;
-        if (Component.template) {
-            Component.render = makeVNodeFn(Component.template, Component);
-        }
+        return COMPONENTS[name] = options;
     }
-    //# sourceMappingURL=register.js.map
 
-    var LOGICS = ['v-if', 'v-else-if', 'v-else', 'v-for', 'v-for-index', 'v-for-item', 'v-key'];
-    var EVENT_PREFIX = /^(?:v-on:|@)/;
-    var BIND_PREFIX = /^(?:v-bind)?:/;
-    var COMPONENT_PREFIX = 'pizza-';
-    var DELIMITTER = {
-        start: /{{/g,
-        end: /}}/g
-    };
     function $l(obj, fn) {
         return {
-            isCopy: true,
-            children: [].map.call(obj, fn).filter(function (vnode) { return vnode !== EMPTY_VNODE; })
+            children: helper.util.map(obj, fn).filter(function (vnode) { return vnode !== EMPTY_VNODE; })
         };
     }
     function $n(node, options, children) {
         var component = this.$components[node] || register(node);
-        if (component && !component.render) {
-            component.render = makeVNodeFn(component.template, component);
-        }
-        return __assign(__assign({ node: component ? "" + COMPONENT_PREFIX + node : node }, options), { children: children, componentOptions: component });
+        return __assign(__assign({ node: component ? config.logo + "-" + node : node }, options), { children: children, componentOptions: component });
     }
     function $t(text) {
         return {
-            text: text,
+            text: text
         };
     }
     function $m(comment) {
         return {
             isComment: true,
-            text: comment,
+            text: comment
         };
     }
     function pick(vnode) {
         var logics = {}, events = {}, props = {};
         for (var key in vnode.props) {
             var val = vnode.props[key];
-            if (LOGICS.indexOf(key) > -1) {
-                logics[key] = val;
+            if (key.indexOf(config.logo + '-') == 0) {
+                logics[key.substr(config.logo.length + 1)] = val;
             }
-            else if (EVENT_PREFIX.test(key)) {
-                events[key.replace(EVENT_PREFIX, '')] = val;
+            else if (key.indexOf(config.prefixs.event) == 0) {
+                events[key.substr(config.prefixs.event.length)] = val;
             }
-            else if (BIND_PREFIX.test(key)) {
-                props[key.replace(BIND_PREFIX, '')] = val;
+            else if (key.indexOf(config.prefixs.bind) == 0) {
+                props[key.substr(config.prefixs.bind.length)] = val;
             }
             else {
                 props[key] = JSON.stringify(val);
@@ -321,14 +343,17 @@
         };
     }
     function stringify(str) {
-        return str.replace(/[\s]+/g, ' ').replace(DELIMITTER.start, '" + (').replace(DELIMITTER.end, ') + "');
+        return str
+            .replace(/[\s]+/g, ' ')
+            .replace(new RegExp(config.delimitter[0], 'g'), '" + (')
+            .replace(new RegExp(config.delimitter[1], 'g'), ') + "');
     }
     function nodeSerialize(vnode) {
         var expression;
         var _a = pick(vnode), logics = _a.logics, events = _a.events, props = _a.props;
-        var _for = logics['v-for'], _if = logics['v-if'], _elseif = logics['v-else-if'], _else = logics['v-else'];
-        var index = logics['v-for-index'] || '$index', item = logics['v-for-item'] || '$item';
-        expression = "_$n(\"" + vnode.node + "\", {\n      " + (_for && logics['v-key'] ? 'key: ' + logics['v-key'] + ',' : '') + "\n      props: " + Helper.util.obj2str(props) + ",\n      events: " + Helper.util.obj2str(events) + ",\n    }, [" + vnode.children.map(function (child, i) { return serialize(child); }) + "])";
+        var _for = logics['for'], _if = logics['if'], _elseif = logics['elseif'] || logics['else-if'], _else = logics['else'];
+        var index = logics['for-index'] || '$index', item = logics['for-item'] || '$item';
+        expression = "_$n(\"" + vnode.node + "\", {\n      " + (_for && logics['key'] ? 'key: ' + logics['key'] + ',' : '') + "\n      props: " + helper.util.obj2str(props) + ",\n      events: " + helper.util.obj2str(events) + ",\n    }, [" + vnode.children.map(function (child, i) { return serialize(child); }) + "])";
         if (_if) {
             expression = _if + " ? " + expression + " : _$e";
         }
@@ -357,8 +382,6 @@
         return expression;
     }
     function makeVNodeFn(template, context) {
-        if (context.render)
-            return context.render;
         var compiler = new Compiler(template);
         var data = compiler.analyse();
         compiler = null;
@@ -370,31 +393,63 @@
         }
         var vars = ['props', 'data', 'methods']
             .reduce(function (a, b) {
-            return a.concat(Helper.util.keys(context[b]));
+            return a.concat(helper.util.keys(context[b]));
         }, [])
             .map(function (key) { return key + " = this." + key; }).join(', ');
-        context.render = (new Function('_$l', '_$n', '_$t', '_$m', '_$e', '_$cs', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]) + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
-        return context.render;
+        return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]) + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
     }
-    //# sourceMappingURL=fn.js.map
+
+    var Options = /** @class */ (function () {
+        function Options(options) {
+            this._ = options;
+            this.props = options.props || {};
+            this.data = options.data || {};
+            this.lifetimes = options.lifetimes || {};
+            this.methods = options.methods || {};
+            this.components = options.components = helper.util.camelKeys2ul(options.components);
+            this.render = options.$$render = options.$$render || makeVNodeFn(options.template, options);
+        }
+        Object.defineProperty(Options.prototype, "style", {
+            get: function () {
+                if (!this._.$$styleSheet) {
+                    this._.$$styleSheet = new CSSStyleSheet();
+                    this._.$$styleSheet.replaceSync(this._.style);
+                }
+                return this._.$$styleSheet;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Options;
+    }());
+
+    var PatchType;
+    (function (PatchType) {
+        PatchType[PatchType["ADD"] = 0] = "ADD";
+        PatchType[PatchType["DEL"] = 1] = "DEL";
+        PatchType[PatchType["UPDATE"] = 2] = "UPDATE";
+        PatchType[PatchType["BATCH"] = 3] = "BATCH";
+        PatchType[PatchType["NONE"] = 4] = "NONE";
+    })(PatchType || (PatchType = {}));
 
     function on(instance, events) {
         if (events === void 0) { events = {}; }
-        Helper.util.each(events, function (event, name) {
+        helper.util.map(events, function (event, name) {
             instance.$on("props:" + name, event);
         });
     }
     function patchComponent (now, old) {
         var instance = old.componentInstance, type;
         if (!instance) {
-            now.el = Helper.dom.createElement(now.node, __assign({}, (now.props.slot ? { slot: now.props.slot } : {})));
-            now.el.$root = now.el.attachShadow({ mode: 'closed' });
-            instance = new Pizza(__assign(__assign({}, now.componentOptions), { propsData: now.props }));
+            now.el = helper.dom.createElement(now.node, __assign({}, (now.props['slot'] ? { slot: now.props['slot'] } : {})));
+            now.el.$root = now.el.attachShadow({ mode: 'open' });
+            instance = new Pizza(now.componentOptions, now.props);
             on(instance, now.events);
             instance.$mount(now.el.$root);
+            now.el.$root.adoptedStyleSheets = [instance.$options.style];
             type = PatchType.ADD;
         }
-        else if (!Helper.util.same(now.props, old.props)) {
+        else if (!helper.util.same(now.props, old.props)) {
             now.el = old.el;
             instance.$propsData = now.props;
             instance.$off('props:');
@@ -412,16 +467,15 @@
             vnode: now,
         };
     }
-    //# sourceMappingURL=component.js.map
 
     function patchNode (now, old) {
         var type;
         if (!old.el) {
-            now.el = Helper.dom.createElement(now.node, now.props, now.events);
+            now.el = helper.dom.createElement(now.node, now.props, now.events);
             type = PatchType.ADD;
         }
-        else if (!Helper.util.same(now.props, old.props)) {
-            now.el = Helper.dom.updateElement(old.el, now.props, now.events);
+        else if (!helper.util.same(now.props, old.props)) {
+            now.el = helper.dom.updateElement(old.el, now.props, now.events);
             type = PatchType.UPDATE;
         }
         else {
@@ -433,7 +487,6 @@
             vnode: now,
         };
     }
-    //# sourceMappingURL=node.js.map
 
     function patchText (now, old) {
         var type;
@@ -443,7 +496,7 @@
             type = PatchType.UPDATE;
         }
         else {
-            now.el = Helper.dom.createText(now.text);
+            now.el = helper.dom.createText(now.text);
             type = PatchType.ADD;
         }
         return {
@@ -451,12 +504,11 @@
             vnode: now,
         };
     }
-    //# sourceMappingURL=text.js.map
 
     function patchComment (now, old) {
         var type;
         if (!old.el) {
-            now.el = Helper.dom.createComment(now.text);
+            now.el = helper.dom.createComment(now.text);
             type = PatchType.ADD;
         }
         else {
@@ -468,13 +520,12 @@
             vnode: now,
         };
     }
-    //# sourceMappingURL=comment.js.map
 
     function del(old) {
         if (!old)
             return false;
         old.componentInstance && old.componentInstance.$destroy();
-        Helper.dom.remove(old.el);
+        helper.dom.remove(old.el);
         old.el = null;
         return old;
     }
@@ -494,15 +545,15 @@
     }
     function patchChildren(now, old) {
         var elIndex = 0, oldChildren = children2keys(old.children || []);
-        Helper.util.each(now.children, function (child, i) {
+        helper.util.map(now.children, function (child, i) {
             var oldChild = pick$1(oldChildren, child.key || i);
             var patch = patchVNode(child, oldChild);
             switch (patch.type) {
                 case PatchType.ADD:
-                    Helper.dom.insert(now.el, child.el, elIndex);
+                    helper.dom.insert(now.el, child.el, elIndex);
                     break;
                 case PatchType.BATCH:
-                    Helper.dom.insert(now.el, child.el, elIndex);
+                    helper.dom.insert(now.el, child.el, elIndex);
                     elIndex += child.el.childNodes.length;
                     return;
                 case PatchType.DEL:
@@ -511,7 +562,7 @@
             }
             elIndex++;
         });
-        Helper.util.each(oldChildren, del);
+        helper.util.map(oldChildren, del);
     }
     function patchVNode(now, old) {
         if (old === void 0) { old = {}; }
@@ -531,13 +582,13 @@
                 patch = patchText(now, old);
                 break;
             }
-            else if (now.isCopy) {
-                now.el = Helper.dom.fragment();
-                patch = { vnode: now, type: PatchType.BATCH };
-            }
             else if (now == EMPTY_VNODE) {
                 patch = { vnode: old, type: PatchType.DEL };
                 break;
+            }
+            else if (!now.el && now.children) {
+                now.el = helper.dom.fragment();
+                patch = { vnode: now, type: PatchType.BATCH };
             }
             else {
                 patch = { vnode: now, type: PatchType.NONE };
@@ -546,63 +597,27 @@
         } while (0);
         return patch;
     }
-    function vnodePatch (now, old) {
+    function patchVNode$1 (now, old) {
         if (old === void 0) { old = {}; }
         return patchVNode(now, old).vnode;
     }
-    //# sourceMappingURL=index.js.map
-
-    var EventEmitter = /** @class */ (function () {
-        function EventEmitter() {
-            this.$events = {};
-        }
-        EventEmitter.prototype.$on = function (name, fn) {
-            var _a;
-            var events = (_a = this.$events[name]) !== null && _a !== void 0 ? _a : [];
-            events.push(fn);
-            this.$events[name] = events;
-        };
-        EventEmitter.prototype.$emit = function (name) {
-            var _this = this;
-            var args = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                args[_i - 1] = arguments[_i];
-            }
-            (this.$events[name] || []).forEach(function (fn) { return fn.apply(_this, args); });
-        };
-        EventEmitter.prototype.$off = function (name) {
-            var _this = this;
-            if (/:$/.test(name)) {
-                Helper.util.each(this.$events, function (events, key) {
-                    key.indexOf(name) == 0 && delete _this.$events[key];
-                });
-            }
-            else {
-                delete this.$events[name];
-            }
-        };
-        return EventEmitter;
-    }());
-    //# sourceMappingURL=event.js.map
 
     var Pizza = /** @class */ (function (_super) {
         __extends(Pizza, _super);
-        function Pizza(options) {
+        function Pizza(options, propsData) {
+            if (propsData === void 0) { propsData = {}; }
             var _this = _super.call(this) || this;
+            _this._nextFns = [];
             _this.$mounted = false;
             _this.$destroyed = false;
-            _this._nextFns = [];
-            _this.$update = Helper.util.debounce(function () {
+            _this.$update = helper.util.debounce(function () {
                 if (!this.$mounted || this.$destroyed)
                     return false;
                 this._render();
                 this.$emit('hook:updated');
             }, 10);
-            _this.$options = options || {};
-            _this.$propsData = options.propsData || {};
-            _this.$data = options.data || {};
-            _this.$methods = options.methods || {};
-            _this.$components = Helper.util.camelKeys2ul(options.components);
+            _this.$options = new Options(options);
+            _this.$propsData = propsData;
             _this._init();
             return _this;
         }
@@ -610,13 +625,31 @@
             //inject lifecycles hook
             this._injectHooks();
             //proxy methods and data
-            Helper.util.proxy(this, this.$options.props, this.$get);
-            Helper.util.proxy(this, this.$methods, this.$get);
-            Helper.util.proxy(this, this.$data, this.$get, this.$set);
-            //create renderFn
-            this._vnodeFn = this.$options.render ? this.$options.render : makeVNodeFn(this.$options.template, this.$options);
+            helper.util.proxy(this, __assign(__assign({}, this.$options.props), this.$options.methods), this.$get);
+            helper.util.proxy(this, this.$options.data, this.$get, this.$set);
             this.$emit('hook:created');
         };
+        Object.defineProperty(Pizza.prototype, "$data", {
+            get: function () {
+                return this.$options.data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Pizza.prototype, "$methods", {
+            get: function () {
+                return this.$options.methods;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Pizza.prototype, "$components", {
+            get: function () {
+                return this.$options.components;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Pizza.prototype.$set = function (key, value) {
             if (!(key in this.$data) || value === this.$data[key])
                 return;
@@ -639,7 +672,7 @@
         };
         Pizza.prototype._injectHooks = function () {
             var _this = this;
-            Helper.util.each(this.$options.lifecyles, function (fn, lifecycle) { return _this.$on("hook:" + lifecycle, fn); });
+            helper.util.map(this.$options.lifetimes, function (fn, lifetime) { return _this.$on("hook:" + lifetime, fn); });
         };
         Pizza.prototype.$emit = function (name) {
             var args = [];
@@ -662,11 +695,11 @@
         };
         Pizza.prototype._render = function () {
             var _this = this;
-            var vnode = this._vnodeFn();
+            var vnode = this.$options.render.call(this);
             if (this._mountElement) {
                 vnode = { el: this._mountElement, children: [vnode] };
             }
-            this._vnode = vnodePatch(vnode, this._vnode);
+            this._vnode = patchVNode$1(vnode, this._vnode);
             this._nextFns.forEach(function (fn) { return fn.call(_this); });
             this._nextFns.length = 0;
         };
@@ -686,12 +719,10 @@
             this.$destroyed = true;
             this.$emit('hook:destroyed');
         };
-        Pizza.register = register;
         return Pizza;
     }(EventEmitter));
-    //# sourceMappingURL=pizza.js.map
 
-    var template = "<users :list=\"users\" @click:item=\"onUserItemClick\"></users>";
+    var template = "<div>\r\n  <div class=\"xx\">xx</div>\r\n  <users :list=\"users\" @click:item=\"onUserItemClick\"></users>\r\n</div>";
 
     var arr = [
       {
@@ -717,7 +748,7 @@
 
     let _ = [];
 
-    for (let i = 0; i < 5000; i++) {
+    for (let i = 0; i < 1; i++) {
       arr.forEach((item, j) => {
         _.push({
           key: 'i' + i + 'j' + j,
@@ -727,12 +758,15 @@
       });
     }
 
-    var template$1 = "<user v-for=\"list\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem($item)\">\n  <!-- <span slot=\"name\">{{$item.name}}</span>\n  {{JSON.stringify($item.fav)}} -->\n</user>";
+    var template$1 = "<user v-for=\"list\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem($item)\">\r\n  <!-- <span slot=\"name\">{{$item.name}}</span>\r\n  {{JSON.stringify($item.fav)}} -->\r\n</user>";
 
-    var template$2 = "<div class=\"user\" @click=\"onClick\">\n  <div>\n    {{info.name}} {{info.fav}}\n  </div>\n  <!-- <slot name=\"name\">{{info.name}}</slot>\n  <slot>{{info.fav}}</slot> -->\n</div>";
+    var template$2 = "<div class=\"user\" @click=\"onClick\">\r\n  <div>\r\n    <span class=\"name\">{{info.name}}</span> {{info.fav}}\r\n  </div>\r\n  <!-- <slot name=\"name\">{{info.name}}</slot>\r\n  <slot>{{info.fav}}</slot> -->\r\n</div>";
+
+    var style = "div {\r\n  font-size: 24px;\r\n}\r\n\r\n.name {\r\n  color: red;\r\n}\r\n\r\n:host {\r\n  border: 1px solid #eee;\r\n  display: block;\r\n}";
 
     var User = {
         template: template$2,
+        style: style,
         props: {
             info: {}
         },
@@ -742,7 +776,6 @@
             }
         }
     };
-    //# sourceMappingURL=user.js.map
 
     var Users = {
         template: template$1,
@@ -768,7 +801,6 @@
             }
         }
     };
-    //# sourceMappingURL=index.js.map
 
     var App = {
         template: template,
@@ -777,6 +809,14 @@
         },
         data: {
             users: _
+        },
+        lifetimes: {
+            mounted: function () {
+                var _this = this;
+                setTimeout(function () {
+                    _this.users = _.slice(1);
+                }, 5000);
+            }
         },
         methods: {
             onUserItemClick: function () {
@@ -788,7 +828,6 @@
             }
         }
     };
-    //# sourceMappingURL=index.js.map
 
     var instance = new Pizza({
         components: {
@@ -797,6 +836,5 @@
         template: '<app />'
     });
     instance.$mount(document.getElementById('app'));
-    //# sourceMappingURL=app.js.map
 
 })));

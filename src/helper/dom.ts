@@ -7,8 +7,8 @@ export default {
 
   updateElement(node: HTMLElement, attrs?: object, listeners?: object) {
     //@ts-ignore
-    attrs && util.each(attrs, (val, key) => key == 'value' ? (node.value = val) : this.setAttr(node, key, val));
-    listeners && util.each(listeners, (fn, key) => this.on(node, key, fn));
+    attrs && util.map(attrs, (val, key) => key == 'value' ? (node.value = val) : this.setAttr(node, key, val));
+    listeners && util.map(listeners, (fn, key) => this.on(node, key, fn));
     return node;
   },
 

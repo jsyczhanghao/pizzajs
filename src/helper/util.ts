@@ -3,7 +3,7 @@ export default {
     this.keys(object).forEach((key: string) => {
       Object.defineProperty(context, key, {
         get: () => getter.call(context, key),
-        ...(setter ? { set: (...args) => setter.call(context, key, ...args) } : { }),
+        set: setter ? (...args) => setter.call(context, key, ...args) : function () { }
       });
     });
   },
@@ -23,13 +23,17 @@ export default {
     return '{' + Object.keys(obj).map((key: string) => `"${key}": ${obj[key]}`).join(',') + '}';
   },
 
-  each(obj: [] | object = [], fn: Function) {
-    if ('length' in obj) {
-      [].forEach.call(obj, fn);
+  map(obj: [] | object | number = [], fn: Function): any[] {
+    if (typeof obj == 'number') {
+      let _ = [], i = 0;
+      while (i++ < obj) _.push(i);
+      return _;
+    } else if ('length' in obj) {
+      return [].map.call(obj, fn);
     } else {
-      for (let key in obj) {
-        fn.call(obj, obj[key], key);
-      }
+      return this.keys(obj).map((key) => {
+        return fn(obj[key], key);
+      });
     }
   },
 

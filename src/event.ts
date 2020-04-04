@@ -1,4 +1,4 @@
-import Helper from "./helper";
+import helper from './helper';
 
 export default class EventEmitter {
   protected $events = {};
@@ -15,11 +15,17 @@ export default class EventEmitter {
 
   $off(name: string) {
     if (/:$/.test(name)) {
-      Helper.util.each(this.$events, (events, key) => {
+      helper.util.map(this.$events, (events, key) => {
         key.indexOf(name) == 0 && delete this.$events[key];
       });
     } else {
       delete this.$events[name];
     }
   }
+
+  $once(name: string, fn: Function) {
+    
+  }
 } 
+
+// this.$invoke('EVENT_CALL', 'click', fn);

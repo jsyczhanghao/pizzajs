@@ -1,5 +1,5 @@
 import template from './index.pxml';
-import User from './user';
+import User from '../user';
 
 export default {
   template,

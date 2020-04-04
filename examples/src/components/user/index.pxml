@@ -1,6 +1,6 @@
 <div class="user" @click="onClick">
   <div>
-    {{info.name}} {{info.fav}}
+    <span class="name">{{info.name}}</span> {{info.fav}}
   </div>
   <!-- <slot name="name">{{info.name}}</slot>
   <slot>{{info.fav}}</slot> -->

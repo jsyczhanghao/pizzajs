@@ -1,8 +1,8 @@
 {
-  "name": "fuck",
+  "name": "pizza",
   "version": "0.0.1",
   "description": "a mini's engine",
-  "main": "dist/fuck.js",
+  "main": "dist/pizza.js",
   "scripts": {
     "dev": "rollup -w -c scripts/examples.config.js",
     "build": "rollup -c scripts/build.config.js",
@@ -12,9 +12,8 @@
   "license": "ISC",
   "devDependencies": {
     "mocha": "^7.1.1",
-    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup": "^2.3.2",
     "rollup-plugin-html": "^0.2.1",
-    "rollup-plugin-node-resolve": "^5.2.0",
     "rollup-plugin-typescript": "^1.0.1",
     "rollup-plugin-typescript2": "^0.26.0",
     "rollup-plugin-uglify": "^6.0.4",
@@ -23,7 +22,6 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "core-js": "^3.6.4",
-    "vue": "^2.6.11"
+    "core-js": "^3.6.4"
   }
 }

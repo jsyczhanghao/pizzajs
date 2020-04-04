@@ -1,34 +1,20 @@
-import { Options, VNode, EMPTY_VNODE } from '../interface';
-import Helper from '../helper';
+import VNode, { EMPTY_VNODE } from './vnode';
 import Compiler from '../compiler';
+import helper from '../helper';
+import config from '../config';
 import register from '../register';
-import Pizza from '../pizza';
 
-const LOGICS = ['v-if', 'v-else-if', 'v-else', 'v-for', 'v-for-index', 'v-for-item', 'v-key'];
-const EVENT_PREFIX = /^(?:v-on:|@)/;
-const BIND_PREFIX = /^(?:v-bind)?:/;
-const COMPONENT_PREFIX = 'pizza-';
-const DELIMITTER = {
-  start: /{{/g,
-  end: /}}/g
-};
-
-function $l(obj: any, fn): VNode {
+function $l(obj: any, fn: Function): VNode {
   return {
-    isCopy: true,
-    children: [].map.call(obj, fn).filter((vnode) => vnode !== EMPTY_VNODE)
+    children: helper.util.map(obj, fn).filter((vnode) => vnode !== EMPTY_VNODE)
   };
 }
 
-function $n(node: string, options: VNode | Options, children: VNode[]): VNode | Options {
+function $n(node: string, options: VNode, children: VNode[]): VNode {
   let component = this.$components[node] || register(node);
 
-  if (component && !component.render) {
-    component.render = makeVNodeFn(component.template, component);
-  } 
-
   return {
-    node: component ? `${COMPONENT_PREFIX}${node}` : node,
+    node: component ? `${config.logo}-${node}` : node,
     ...options,
     children: children,
     componentOptions: component,
@@ -37,14 +23,14 @@ function $n(node: string, options: VNode | Options, children: VNode[]): VNode | 
 
 function $t(text: string) {
   return {
-    text,
+    text
   };
 }
 
 function $m(comment: string) {
   return {
     isComment: true,
-    text: comment,
+    text: comment
   };
 }
 
@@ -54,12 +40,12 @@ function pick(vnode: VNode) {
   for (let key in vnode.props) {
     let val = vnode.props[key];
 
-    if (LOGICS.indexOf(key) > -1) {
-      logics[key] = val;
-    } else if (EVENT_PREFIX.test(key)) {
-      events[key.replace(EVENT_PREFIX, '')] = val;
-    } else if (BIND_PREFIX.test(key)) {
-      props[key.replace(BIND_PREFIX, '')] = val;
+    if (key.indexOf(config.logo + '-') == 0) {
+      logics[key.substr(config.logo.length + 1)] = val;
+    } else if (key.indexOf(config.prefixs.event) == 0) {
+      events[key.substr(config.prefixs.event.length)] = val;
+    } else if (key.indexOf(config.prefixs.bind) == 0) {
+      props[key.substr(config.prefixs.bind.length)] = val;
     } else {
       props[key] = JSON.stringify(val);
     }
@@ -73,19 +59,22 @@ function pick(vnode: VNode) {
 }
 
 function stringify(str: string): string {
-  return str.replace(/[\s]+/g, ' ').replace(DELIMITTER.start, '" + (').replace(DELIMITTER.end, ') + "');
+  return str
+          .replace(/[\s]+/g, ' ')
+          .replace(new RegExp(config.delimitter[0], 'g'), '" + (')
+          .replace(new RegExp(config.delimitter[1], 'g'), ') + "');
 }
 
 function nodeSerialize(vnode: VNode) {
   let expression: string;
   let { logics, events, props } = pick(vnode);
-  let _for = logics['v-for'], _if = logics['v-if'], _elseif = logics['v-else-if'], _else = logics['v-else'];
-  let index = logics['v-for-index'] || '$index', item = logics['v-for-item'] || '$item';
+  let _for = logics['for'], _if = logics['if'], _elseif = logics['elseif'] || logics['else-if'], _else = logics['else'];
+  let index = logics['for-index'] || '$index', item = logics['for-item'] || '$item';
 
   expression = `_$n("${vnode.node}", {
-      ${_for && logics['v-key'] ? 'key: ' + logics['v-key'] + ',' : ''}
-      props: ${Helper.util.obj2str(props)},
-      events: ${Helper.util.obj2str(events)},
+      ${_for && logics['key'] ? 'key: ' + logics['key'] + ',' : ''}
+      props: ${helper.util.obj2str(props)},
+      events: ${helper.util.obj2str(events)},
     }, [${vnode.children.map((child, i) => serialize(child))}])`;
 
   if (_if) {
@@ -117,14 +106,12 @@ function serialize(vnode: VNode): string {
   return expression;
 }
 
-export default function makeVNodeFn (template: string, context: Options): any {
-  if (context.render) return context.render;
-
+export default function makeVNodeFn(template: string, context: any): any {
   let compiler = new Compiler(template);
   let data: VNode = compiler.analyse();
 
   compiler = null;
-  
+
   if (!data || data.children.length == 0) {
     throw new Error('instance must be a root element!');
   } else if (data.children.length > 1) {
@@ -133,18 +120,16 @@ export default function makeVNodeFn (template: string, context: Options): any {
 
   let vars: string = ['props', 'data', 'methods']
     .reduce((a, b) => {
-      return a.concat(Helper.util.keys(context[b]));
+      return a.concat(helper.util.keys(context[b]));
     }, [])
     .map((key) => `${key} = this.${key}`).join(', ')
     ;
-    
-  context.render = (new Function('_$l', '_$n', '_$t', '_$m', '_$e', '_$cs', `
+
+  return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', `
     return function() {
       ${vars != '' ? `var ${vars};` : ''};
       _$n = _$n.bind(this);
       return ${serialize(data.children[0])};
     };
   `))($l, $n, $t, $m, EMPTY_VNODE);
-
-  return context.render;
 }

@@ -1,4 +1,5 @@
-import { VNode, Patch, PatchType, EMPTY_VNODE } from '../../interface';
+import { Patch, PatchType } from './patch';
+import VNode, { EMPTY_VNODE } from '../vnode';
 import Helper from '../../helper';
 import patchComponent from './component';
 import patchNode from './node';
@@ -13,7 +14,7 @@ function del(old) {
   return old;
 }
 
-function children2keys(children) : object | VNode[] {
+function children2keys(children): object | VNode[] {
   let first = children[0], keysChildren = {};
 
   if (!first || first.key == null) return children;
@@ -34,7 +35,7 @@ function pick(children, key: string | number) {
 function patchChildren(now: VNode, old: VNode) {
   let elIndex = 0, oldChildren = children2keys(old.children || []), template: any;
 
-  Helper.util.each(now.children, (child: VNode, i: number) => {
+  Helper.util.map(now.children, (child: VNode, i: number) => {
     let oldChild = pick(oldChildren, child.key || i);
     let patch: Patch = patchVNode(child, oldChild);
 
@@ -46,17 +47,17 @@ function patchChildren(now: VNode, old: VNode) {
       case PatchType.BATCH:
         Helper.dom.insert(now.el, child.el, elIndex);
         elIndex += child.el.childNodes.length;
-       return;
+        return;
 
       case PatchType.DEL:
         del(oldChild);
-        return ;
+        return;
     }
 
     elIndex++;
   });
 
-  Helper.util.each(oldChildren, del);
+  Helper.util.map(oldChildren, del);
 }
 
 function patchVNode(now: VNode, old: VNode = {}): Patch {
@@ -73,14 +74,14 @@ function patchVNode(now: VNode, old: VNode = {}): Patch {
     } else if (now.text) {
       patch = patchText(now, old);
       break;
-    } else if (now.isCopy) {
-      now.el = Helper.dom.fragment();
-      patch = { vnode: now, type: PatchType.BATCH };
     } else if (now == EMPTY_VNODE) {
       patch = { vnode: old, type: PatchType.DEL };
       break;
+    } else if (!now.el && now.children) {
+      now.el = Helper.dom.fragment();
+      patch = { vnode: now, type: PatchType.BATCH };
     } else {
-      patch = { vnode: now, type: PatchType.NONE};
+      patch = { vnode: now, type: PatchType.NONE };
     }
 
     patchChildren(now, old);

@@ -1,5 +1,4 @@
 const typescript = require('rollup-plugin-typescript');
-const commonjs = require('rollup-plugin-commonjs');
 const html = require('rollup-plugin-html');
 const path = require('path');
 
@@ -12,7 +11,7 @@ export default {
   plugins: [
     typescript(),
     html({
-			include: '**/*.pxml',
+			include: '**/*.{pxml,css}',
 		}),
   ],
 };

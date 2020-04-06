@@ -8,9 +8,17 @@ export default {
     list: []
   },
 
-  lifecyles: {
+  data() {
+    return {
+      users: this.list
+    };
+  },
+
+  lifetimes: {
     mounted() {
-      this.$emit('click');
+      setTimeout(() => {
+        this.users = this.users.slice(2);
+      }, 2000);
     }
   },
 

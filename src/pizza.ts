@@ -6,17 +6,23 @@ import { VNode, patchVNode } from './vnode';
 class Pizza extends EventEmitter {
   $options: Options;
   $propsData: object;
-  protected _vnode: VNode;
-  protected _nextFns = [];
-  protected _mountElement?: HTMLElement;
+  $data: object;
+  $vnode: VNode;
+  $render: Function;
+  $context: Pizza;
+  $componentName: string;
   $mounted: boolean = false;
   $destroyed: boolean = false;
   $el?: HTMLElement | Text | Comment | DocumentFragment;
+  protected _mountElement?: HTMLElement;
 
-  constructor(options: OptionsData, propsData: object = {}) {
+  constructor(componentOptions: OptionsData = {}, options: any = {}) {
     super();
-    this.$options = new Options(options);
-    this.$propsData = propsData;
+    this.$options = new Options(componentOptions);
+    this.$render = this.$options.render;
+    this.$propsData = options.props;
+    this.$context = options.context;
+    this.$componentName = options.componentName;
     this._init();
   }
 
@@ -28,12 +34,15 @@ class Pizza extends EventEmitter {
       ...this.$options.props,
       ...this.$options.methods
     }, this.$get);
-    helper.util.proxy(this, this.$options.data, this.$get, this.$set);
-    this.$emit('hook:created');
-  }
 
-  get $data() {
-    return this.$options.data;
+    if (typeof this.$options.data == 'function') {
+      this.$data = this.$options.data.call(this);
+    } else {
+      this.$data = this.$options.data;
+    }
+
+    helper.util.proxy(this, this.$data, this.$get, this.$set);
+    this.$emit('hook:created');
   }
 
   get $methods() {
@@ -51,66 +60,77 @@ class Pizza extends EventEmitter {
   }
 
   $get(key: string, _default?: any) {
-    if (this.$methods[key]) {
-      return (...args: []) => this.$invoke(key, ...args);
-    }
-
-    return this.$propsData[key] ?? this.$data[key] ?? _default;
+    return this.$methods[key] ?? this.$propsData[key] ?? this.$data[key] ?? _default;
   }
 
   protected _injectHooks() {
-    helper.util.map(this.$options.lifetimes, (fn: Function, lifetime) => this.$on(`hook:${lifetime}`, fn));
+    helper.util.map(this.$options.lifetimes, (fn: Function, lifetime: string) => this.$on(`hook:${lifetime}`, fn));
   }
 
-  $emit(name, ...args) {
+  $emit(name: string, ...args: any) {
     super.$emit(name, ...args);
-    super.$emit(`PROPS_EVENT:${name}`, ...args);
+    super.$emit(`${Pizza.$PROPS_EVENT_PREFIX}${name}`, ...args);
   }
 
-  $invoke(key, ...args) {
-    return this.$methods[key].call(this, ...args);
+  $invoke(method: string, ...args: any) {
+    return this[method].call(this, ...args);
   }
 
   $nextTick(fn: Function) {
-    this.$once('$nextTick', fn);
+    this.$once('hook:$nextTick', fn);
+  }
+
+  $invokeUpdate() {
+    this.$update();
   }
 
   $update = helper.util.debounce(function () {
     if (!this.$mounted || this.$destroyed) return false;
     this._render();
     this.$emit('hook:updated');
-    this.$emit('$nextTick');
+    this.$emit('hook:$nextTick');
   }, 10)
 
-  _render() {
-    let vnode: VNode = this.$options.render.call(this);
+  protected _render() {
+    let vnode: VNode = this.$render.call(this);
+
+    if (!vnode) return false;
 
     if (this._mountElement) {
       vnode = { el: this._mountElement, children: [vnode] };
     }
 
-    this._vnode = patchVNode(vnode, this._vnode);
+    this._patch(vnode);
+  }
+
+  protected _patch(vnode: VNode) {
+    this.$vnode = patchVNode(vnode, this.$vnode, this);
+    this.$el = this.$vnode.el;
+  }
+
+  $invokeMount(element?: HTMLElement) {
+    this.$mount(element);
   }
 
   $mount(element?: HTMLElement) {
-    if (this.$mounted) return false;
+    if (this.$mounted) return;
 
     if (element) {
-      element.innerHTML = '';
       this._mountElement = element;
     }
 
     this._render();
-    this.$el = this._vnode.el;
     this.$mounted = true;
     this.$emit('hook:mounted');
-    this.$emit('$nextTick');
+    this.$emit('hook:$nextTick');
   }
 
   $destroy() {
     this.$destroyed = true;
     this.$emit('hook:destroyed');
   }
+  
+  static $PROPS_EVENT_PREFIX = 'PROPS_EVENT:';
 }
 
 export default Pizza;

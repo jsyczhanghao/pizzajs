@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES5",
     "declaration": true,
-    "declarationDir": "./types"
+    "declarationDir": "./types",
+    "lib": [ "es2015" ]
   },
   "include": [
       "src"

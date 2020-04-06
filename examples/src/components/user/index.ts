@@ -10,7 +10,8 @@ export default {
 
   methods: {
     onClick(e) {
-      this.$emit('click', e);
+      console.log(e);
+      //this.$emit('click', e);
     }
   }
 }

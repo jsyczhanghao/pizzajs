@@ -11,6 +11,7 @@ export default interface VNode {
   readonly events?: object;
   readonly componentOptions?: OptionsData;
   componentInstance?: Pizza;
+  readonly context?: Pizza;
   readonly isComment?: boolean;
   el?: any;
 }

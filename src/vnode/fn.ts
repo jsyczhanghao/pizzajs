@@ -14,7 +14,7 @@ function $n(node: string, options: VNode, children: VNode[]): VNode {
   let component = this.$components[node] || register(node);
 
   return {
-    node: component ? `${config.logo}-${node}` : node,
+    node,
     ...options,
     children: children,
     componentOptions: component,
@@ -35,7 +35,7 @@ function $m(comment: string) {
 }
 
 function pick(vnode: VNode) {
-  let logics = {}, events = {}, props = {};
+  let logics = {}, events = {}, props = {}, dataset = {};
 
   for (let key in vnode.props) {
     let val = vnode.props[key];
@@ -43,18 +43,22 @@ function pick(vnode: VNode) {
     if (key.indexOf(config.logo + '-') == 0) {
       logics[key.substr(config.logo.length + 1)] = val;
     } else if (key.indexOf(config.prefixs.event) == 0) {
-      events[key.substr(config.prefixs.event.length)] = val;
+      events[key.substr(config.prefixs.event.length)] = `"${val}"`;
     } else if (key.indexOf(config.prefixs.bind) == 0) {
       props[key.substr(config.prefixs.bind.length)] = val;
+    } else if (key.indexOf(config.prefixs.data) == 0) {
+      dataset[key.substr(config.prefixs.data.length)] = val;
     } else {
       props[key] = JSON.stringify(val);
     }
   }
 
+  props['dataset'] = dataset;
+
   return {
     logics,
     events,
-    props
+    props,
   };
 }
 
@@ -107,6 +111,8 @@ function serialize(vnode: VNode): string {
 }
 
 export default function makeVNodeFn(template: string, context: any): any {
+  if (!template) return function() {};
+
   let compiler = new Compiler(template);
   let data: VNode = compiler.analyse();
 
@@ -118,12 +124,10 @@ export default function makeVNodeFn(template: string, context: any): any {
     throw new Error(`template\'s root must be only one !\r\n ${template}`);
   }
 
-  let vars: string = ['props', 'data', 'methods']
-    .reduce((a, b) => {
-      return a.concat(helper.util.keys(context[b]));
-    }, [])
-    .map((key) => `${key} = this.${key}`).join(', ')
-    ;
+  let props = helper.util.keys(context.props);
+  let methods = helper.util.keys(context.methods);
+  let datas = helper.util.keys(typeof context.data == 'function' ? context.data.call({}) : (context.data || {}));
+  let vars: string = props.concat(methods, datas).map((key) => `${key} = this.${key}`).join(', ');
 
   return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', `
     return function() {

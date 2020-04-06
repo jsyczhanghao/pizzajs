@@ -1,7 +1,4 @@
-<div class="user" @click="onClick">
-  <div>
-    <span class="name">{{info.name}}</span> {{info.fav}}
-  </div>
-  <!-- <slot name="name">{{info.name}}</slot>
-  <slot>{{info.fav}}</slot> -->
+<div class="user" @click="onClick" data-xx="info">
+  <span class="name"><slot name="name">{{info.name}}</slot></span>
+  <slot>{{info.fav}}</slot>
 </div>

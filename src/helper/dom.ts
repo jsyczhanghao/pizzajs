@@ -7,7 +7,15 @@ export default {
 
   updateElement(node: HTMLElement, attrs?: object, listeners?: object) {
     //@ts-ignore
-    attrs && util.map(attrs, (val, key) => key == 'value' ? (node.value = val) : this.setAttr(node, key, val));
+    attrs && util.map(attrs, (val, key) => {
+      if (key == 'value') {
+        node[key] = val;
+      } else if (key == 'dataset') {
+        node['$dataset'] = val;
+      } else {
+        this.setAttr(node, key, val);
+      }
+    });
     listeners && util.map(listeners, (fn, key) => this.on(node, key, fn));
     return node;
   },
@@ -21,6 +29,7 @@ export default {
 
     $$listeners[name] = fn;
     node.addEventListener(name, (e) => {
+      e.dataset = node.$dataset;
       $$listeners[name] && $$listeners[name].call(node, e);
     }, false);
     node['$$listeners'] = $$listeners;

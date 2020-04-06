@@ -19,8 +19,12 @@ export default {
     };
   },
 
-  obj2str(obj: object) {
-    return '{' + Object.keys(obj).map((key: string) => `"${key}": ${obj[key]}`).join(',') + '}';
+  obj2str(obj: any) {
+    if (typeof obj == 'object') {
+      return '{' + Object.keys(obj).map((key: string) => `"${key}": ${this.obj2str(obj[key])}`).join(',') + '}';
+    } else {
+      return obj;
+    }
   },
 
   map(obj: [] | object | number = [], fn: Function): any[] {
@@ -55,11 +59,7 @@ export default {
     return _;
   },
 
-  same(a: object, b: object = {}): boolean {
-    for (let key in a) {
-      if (a[key] !== b[key]) return false;
-    }
-
-    return true;
+  same(a: any, b: any): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
   }
 }

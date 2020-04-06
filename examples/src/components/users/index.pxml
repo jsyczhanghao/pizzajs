@@ -1,4 +1,4 @@
-<user v-for="list" :info="$item" v-for-index="index" v-key="$item.key" @click="onClickItem($item)">
-  <!-- <span slot="name">{{$item.name}}</span>
-  {{JSON.stringify($item.fav)}} -->
+<user v-for="list" :info="$item" v-for-index="index" v-key="$item.key" @click="onClickItem">
+  <span slot="name">{{$item.name}}</span>
+  {{JSON.stringify($item.fav)}}
 </user>

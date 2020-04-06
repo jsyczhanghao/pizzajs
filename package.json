@@ -5,12 +5,14 @@
   "main": "dist/pizza.js",
   "scripts": {
     "dev": "rollup -w -c scripts/examples.config.js",
+    "background": "rollup -w -c scripts/examples.background.config.js",
     "build": "rollup -c scripts/build.config.js",
     "test": "mocha test"
   },
   "author": "js.zhang",
   "license": "ISC",
   "devDependencies": {
+    "express": "^4.17.1",
     "mocha": "^7.1.1",
     "rollup": "^2.3.2",
     "rollup-plugin-html": "^0.2.1",

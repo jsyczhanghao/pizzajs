@@ -77,7 +77,13 @@
             };
         },
         obj2str: function (obj) {
-            return '{' + Object.keys(obj).map(function (key) { return "\"" + key + "\": " + obj[key]; }).join(',') + '}';
+            var _this = this;
+            if (typeof obj == 'object') {
+                return '{' + Object.keys(obj).map(function (key) { return "\"" + key + "\": " + _this.obj2str(obj[key]); }).join(',') + '}';
+            }
+            else {
+                return obj;
+            }
         },
         map: function (obj, fn) {
             if (obj === void 0) { obj = []; }
@@ -112,12 +118,7 @@
             return _;
         },
         same: function (a, b) {
-            if (b === void 0) { b = {}; }
-            for (var key in a) {
-                if (a[key] !== b[key])
-                    return false;
-            }
-            return true;
+            return JSON.stringify(a) === JSON.stringify(b);
         }
     };
 
@@ -132,7 +133,17 @@
         updateElement: function (node, attrs, listeners) {
             var _this = this;
             //@ts-ignore
-            attrs && util.map(attrs, function (val, key) { return key == 'value' ? (node.value = val) : _this.setAttr(node, key, val); });
+            attrs && util.map(attrs, function (val, key) {
+                if (key == 'value') {
+                    node[key] = val;
+                }
+                else if (key == 'dataset') {
+                    node['$dataset'] = val;
+                }
+                else {
+                    _this.setAttr(node, key, val);
+                }
+            });
             listeners && util.map(listeners, function (fn, key) { return _this.on(node, key, fn); });
             return node;
         },
@@ -143,6 +154,7 @@
             var $$listeners = node['$$listeners'] || {};
             $$listeners[name] = fn;
             node.addEventListener(name, function (e) {
+                e.dataset = node.$dataset;
                 $$listeners[name] && $$listeners[name].call(node, e);
             }, false);
             node['$$listeners'] = $$listeners;
@@ -206,7 +218,7 @@
         EventEmitter.prototype.$offByPrefix = function (name) {
             var _this = this;
             helper.util.map(this.$events, function (events, key) {
-                key.indexOf(name) == 0 && _this.$off(name);
+                key.indexOf(name) == 0 && _this.$off(key);
             });
         };
         EventEmitter.prototype.$once = function (name, fn) {
@@ -297,9 +309,11 @@
         logo: 'v',
         prefixs: {
             event: '@',
-            bind: ':'
+            bind: ':',
+            data: 'data-',
         },
         delimitter: ['{{', '}}'],
+        constructor: Pizza
     };
 
     var COMPONENT_NAME_TEST = /[a-z][a-z0-9]*(-[a-z]+)+/;
@@ -319,7 +333,7 @@
     }
     function $n(node, options, children) {
         var component = this.$components[node] || register(node);
-        return __assign(__assign({ node: component ? config.logo + "-" + node : node }, options), { children: children, componentOptions: component });
+        return __assign(__assign({ node: node }, options), { children: children, componentOptions: component });
     }
     function $t(text) {
         return {
@@ -333,26 +347,30 @@
         };
     }
     function pick(vnode) {
-        var logics = {}, events = {}, props = {};
+        var logics = {}, events = {}, props = {}, dataset = {};
         for (var key in vnode.props) {
             var val = vnode.props[key];
             if (key.indexOf(config.logo + '-') == 0) {
                 logics[key.substr(config.logo.length + 1)] = val;
             }
             else if (key.indexOf(config.prefixs.event) == 0) {
-                events[key.substr(config.prefixs.event.length)] = val;
+                events[key.substr(config.prefixs.event.length)] = "\"" + val + "\"";
             }
             else if (key.indexOf(config.prefixs.bind) == 0) {
                 props[key.substr(config.prefixs.bind.length)] = val;
+            }
+            else if (key.indexOf(config.prefixs.data) == 0) {
+                dataset[key.substr(config.prefixs.data.length)] = val;
             }
             else {
                 props[key] = JSON.stringify(val);
             }
         }
+        props['dataset'] = dataset;
         return {
             logics: logics,
             events: events,
-            props: props
+            props: props,
         };
     }
     function stringify(str) {
@@ -395,6 +413,8 @@
         return expression;
     }
     function makeVNodeFn(template, context) {
+        if (!template)
+            return function () { };
         var compiler = new Compiler(template);
         var data = compiler.analyse();
         compiler = null;
@@ -404,11 +424,10 @@
         else if (data.children.length > 1) {
             throw new Error("template's root must be only one !\r\n " + template);
         }
-        var vars = ['props', 'data', 'methods']
-            .reduce(function (a, b) {
-            return a.concat(helper.util.keys(context[b]));
-        }, [])
-            .map(function (key) { return key + " = this." + key; }).join(', ');
+        var props = helper.util.keys(context.props);
+        var methods = helper.util.keys(context.methods);
+        var datas = helper.util.keys(typeof context.data == 'function' ? context.data.call({}) : (context.data || {}));
+        var vars = props.concat(methods, datas).map(function (key) { return key + " = this." + key; }).join(', ');
         return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]) + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
     }
 
@@ -419,16 +438,21 @@
             this.data = options.data || {};
             this.lifetimes = options.lifetimes || {};
             this.methods = options.methods || {};
+            this.watch = options.watch || {};
+            //  this.methodsKeys = Object.keys(options.methods);
             this.components = options.components = helper.util.camelKeys2ul(options.components);
-            this.render = options.$$render = options.$$render || makeVNodeFn(options.template, options);
+            this.render = options.render = options.render || makeVNodeFn(options.template, options);
         }
         Object.defineProperty(Options.prototype, "style", {
             get: function () {
-                if (!this._.$$styleSheet) {
-                    this._.$$styleSheet = new CSSStyleSheet();
-                    this._.$$styleSheet.replaceSync(this._.style);
-                }
-                return this._.$$styleSheet;
+                // if ('CSSStyleSheet' in window) {
+                //   if (!this._.$$styleSheet) {
+                //     this._.$$styleSheet = new CSSStyleSheet();
+                //     this._.$$styleSheet.replaceSync(this._.style);
+                //   }
+                //   return this._.$$styleSheet;
+                // }
+                return this._.style;
             },
             enumerable: true,
             configurable: true
@@ -445,30 +469,45 @@
         PatchType[PatchType["NONE"] = 4] = "NONE";
     })(PatchType || (PatchType = {}));
 
-    var PROPS_EVENT = 'PROPS_EVENT:';
     function on(instance, events) {
         if (events === void 0) { events = {}; }
         helper.util.map(events, function (event, name) {
-            instance.$on("" + PROPS_EVENT + name, event);
+            instance.$on("" + config.constructor.$PROPS_EVENT_PREFIX + name, function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                this.$invoke.apply(this, __spreadArrays([event], args));
+            });
         });
     }
-    function patchComponent (now, old) {
+    function patchComponent (now, old, context) {
         var instance = old.componentInstance, type;
         if (!instance) {
-            now.el = helper.dom.createElement(now.node, __assign({}, (now.props['slot'] ? { slot: now.props['slot'] } : {})));
+            now.el = helper.dom.createElement(config.logo + "-" + now.node, __assign({}, (now.props['slot'] ? { slot: now.props['slot'] } : {})));
             now.el.$root = now.el.attachShadow({ mode: 'open' });
-            instance = new Pizza(now.componentOptions, now.props);
+            instance = new config.constructor(now.componentOptions, {
+                props: now.props,
+                context: context,
+                componentName: now.node,
+            });
             on(instance, now.events);
-            instance.$mount(now.el.$root);
-            now.el.$root.adoptedStyleSheets = [instance.$options.style];
+            instance.$invokeMount(now.el.$root);
+            // if ('adoptedStyleSheets' in now.el.$root) {
+            //   now.el.$root.adoptedStyleSheets = [instance.$options.style];
+            // } else {
+            var style = document.createElement('style');
+            style.textContent = instance.$options.style;
+            now.el.$root.appendChild(style);
+            // }
             type = PatchType.ADD;
         }
         else if (!helper.util.same(now.props, old.props)) {
             now.el = old.el;
             instance.$propsData = now.props;
-            instance.$offByPrefix(PROPS_EVENT);
+            instance.$offByPrefix(config.constructor.$PROPS_EVENT_PREFIX);
             on(instance, now.events);
-            instance.$update();
+            instance.$invokeUpdate();
             type = PatchType.UPDATE;
         }
         else {
@@ -482,14 +521,24 @@
         };
     }
 
-    function patchNode (now, old) {
+    function patchNode (now, old, context) {
         var type;
+        var events = {};
+        helper.util.map(now.events || {}, function (event, key) {
+            events[key] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                context.$invoke.apply(context, __spreadArrays([event], args));
+            };
+        });
         if (!old.el) {
-            now.el = helper.dom.createElement(now.node, now.props, now.events);
+            now.el = helper.dom.createElement(now.node, now.props, events);
             type = PatchType.ADD;
         }
         else if (!helper.util.same(now.props, old.props)) {
-            now.el = helper.dom.updateElement(old.el, now.props, now.events);
+            now.el = helper.dom.updateElement(old.el, now.props, event);
             type = PatchType.UPDATE;
         }
         else {
@@ -557,11 +606,11 @@
         delete children[key];
         return child;
     }
-    function patchChildren(now, old) {
+    function patchChildren(now, old, context) {
         var elIndex = 0, oldChildren = children2keys(old.children || []);
         helper.util.map(now.children, function (child, i) {
             var oldChild = pick$1(oldChildren, child.key || i);
-            var patch = patchVNode(child, oldChild);
+            var patch = patchVNode(child, oldChild, context);
             switch (patch.type) {
                 case PatchType.ADD:
                     helper.dom.insert(now.el, child.el, elIndex);
@@ -578,15 +627,15 @@
         });
         helper.util.map(oldChildren, del);
     }
-    function patchVNode(now, old) {
+    function patchVNode(now, old, context) {
         if (old === void 0) { old = {}; }
         var patch;
         do {
             if (now.componentOptions) {
-                patch = patchComponent(now, old);
+                patch = patchComponent(now, old, context);
             }
             else if (now.node) {
-                patch = patchNode(now, old);
+                patch = patchNode(now, old, context);
             }
             else if (now.isComment) {
                 patch = patchComment(now, old);
@@ -607,21 +656,21 @@
             else {
                 patch = { vnode: now, type: PatchType.NONE };
             }
-            patchChildren(now, old);
+            patchChildren(now, old, context);
         } while (0);
         return patch;
     }
-    function patchVNode$1 (now, old) {
+    function patchVNode$1 (now, old, context) {
         if (old === void 0) { old = {}; }
-        return patchVNode(now, old).vnode;
+        return patchVNode(now, old, context).vnode;
     }
 
     var Pizza = /** @class */ (function (_super) {
         __extends(Pizza, _super);
-        function Pizza(options, propsData) {
-            if (propsData === void 0) { propsData = {}; }
+        function Pizza(componentOptions, options) {
+            if (componentOptions === void 0) { componentOptions = {}; }
+            if (options === void 0) { options = {}; }
             var _this = _super.call(this) || this;
-            _this._nextFns = [];
             _this.$mounted = false;
             _this.$destroyed = false;
             _this.$update = helper.util.debounce(function () {
@@ -629,10 +678,13 @@
                     return false;
                 this._render();
                 this.$emit('hook:updated');
-                this.$emit('$nextTick');
+                this.$emit('hook:$nextTick');
             }, 10);
-            _this.$options = new Options(options);
-            _this.$propsData = propsData;
+            _this.$options = new Options(componentOptions);
+            _this.$render = _this.$options.render;
+            _this.$propsData = options.props;
+            _this.$context = options.context;
+            _this.$componentName = options.componentName;
             _this._init();
             return _this;
         }
@@ -641,16 +693,15 @@
             this._injectHooks();
             //proxy methods and data
             helper.util.proxy(this, __assign(__assign({}, this.$options.props), this.$options.methods), this.$get);
-            helper.util.proxy(this, this.$options.data, this.$get, this.$set);
+            if (typeof this.$options.data == 'function') {
+                this.$data = this.$options.data.call(this);
+            }
+            else {
+                this.$data = this.$options.data;
+            }
+            helper.util.proxy(this, this.$data, this.$get, this.$set);
             this.$emit('hook:created');
         };
-        Object.defineProperty(Pizza.prototype, "$data", {
-            get: function () {
-                return this.$options.data;
-            },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Pizza.prototype, "$methods", {
             get: function () {
                 return this.$options.methods;
@@ -672,18 +723,8 @@
             this.$update();
         };
         Pizza.prototype.$get = function (key, _default) {
-            var _this = this;
-            var _a, _b;
-            if (this.$methods[key]) {
-                return function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
-                    return _this.$invoke.apply(_this, __spreadArrays([key], args));
-                };
-            }
-            return (_b = (_a = this.$propsData[key]) !== null && _a !== void 0 ? _a : this.$data[key]) !== null && _b !== void 0 ? _b : _default;
+            var _a, _b, _c;
+            return (_c = (_b = (_a = this.$methods[key]) !== null && _a !== void 0 ? _a : this.$propsData[key]) !== null && _b !== void 0 ? _b : this.$data[key]) !== null && _c !== void 0 ? _c : _default;
         };
         Pizza.prototype._injectHooks = function () {
             var _this = this;
@@ -695,168 +736,125 @@
                 args[_i - 1] = arguments[_i];
             }
             _super.prototype.$emit.apply(this, __spreadArrays([name], args));
-            _super.prototype.$emit.apply(this, __spreadArrays(["PROPS_EVENT:" + name], args));
+            _super.prototype.$emit.apply(this, __spreadArrays(["" + Pizza.$PROPS_EVENT_PREFIX + name], args));
         };
-        Pizza.prototype.$invoke = function (key) {
+        Pizza.prototype.$invoke = function (method) {
             var _a;
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            return (_a = this.$methods[key]).call.apply(_a, __spreadArrays([this], args));
+            return (_a = this[method]).call.apply(_a, __spreadArrays([this], args));
         };
         Pizza.prototype.$nextTick = function (fn) {
-            this.$once('$nextTick', fn);
+            this.$once('hook:$nextTick', fn);
+        };
+        Pizza.prototype.$invokeUpdate = function () {
+            this.$update();
         };
         Pizza.prototype._render = function () {
-            var vnode = this.$options.render.call(this);
+            var vnode = this.$render.call(this);
+            if (!vnode)
+                return false;
             if (this._mountElement) {
                 vnode = { el: this._mountElement, children: [vnode] };
             }
-            this._vnode = patchVNode$1(vnode, this._vnode);
+            this._patch(vnode);
+        };
+        Pizza.prototype._patch = function (vnode) {
+            this.$vnode = patchVNode$1(vnode, this.$vnode, this);
+            this.$el = this.$vnode.el;
+        };
+        Pizza.prototype.$invokeMount = function (element) {
+            this.$mount(element);
         };
         Pizza.prototype.$mount = function (element) {
             if (this.$mounted)
-                return false;
+                return;
             if (element) {
-                element.innerHTML = '';
                 this._mountElement = element;
             }
             this._render();
-            this.$el = this._vnode.el;
             this.$mounted = true;
             this.$emit('hook:mounted');
-            this.$emit('$nextTick');
+            this.$emit('hook:$nextTick');
         };
         Pizza.prototype.$destroy = function () {
             this.$destroyed = true;
             this.$emit('hook:destroyed');
         };
+        Pizza.$PROPS_EVENT_PREFIX = 'PROPS_EVENT:';
         return Pizza;
     }(EventEmitter));
 
-    var template = "<div>\r\n  <div class=\"xx\">xx</div>\r\n  <users :list=\"users\" @click:item=\"onUserItemClick\"></users>\r\n</div>";
-
-    var arr = [
-      {
-        name: 'A',
-        fav: ['eat', 'sex']
-      },
-
-      {
-        name: 'B',
-        fav: ['eat', 'play']
-      },
-
-      {
-        name: 'C',
-        fav: ['sex', 'play']
-      },
-
-      {
-        name: 'D',
-        fav: ['eat', 'sex', 'play']
-      },
-    ];
-
-    let _ = [];
-
-    for (let i = 0; i < 1; i++) {
-      arr.forEach((item, j) => {
-        _.push({
-          key: 'i' + i + 'j' + j,
-          name: item.name,
-          fav: item.fav,
-        });
-      });
-    }
-
-    var template$1 = "<user v-for=\"list\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem($item)\">\r\n  <!-- <span slot=\"name\">{{$item.name}}</span>\r\n  {{JSON.stringify($item.fav)}} -->\r\n</user>";
-
-    var template$2 = "<div class=\"user\" @click=\"onClick\">\r\n  <div>\r\n    <span class=\"name\">{{info.name}}</span> {{info.fav}}\r\n  </div>\r\n  <!-- <slot name=\"name\">{{info.name}}</slot>\r\n  <slot>{{info.fav}}</slot> -->\r\n</div>";
-
-    var style = "div {\r\n  font-size: 24px;\r\n}\r\n\r\n.name {\r\n  color: red;\r\n}\r\n\r\n:host {\r\n  border: 1px solid #eee;\r\n  display: block;\r\n}";
-
-    var User = {
-        template: template$2,
-        style: style,
-        props: {
-            info: {}
-        },
-        methods: {
-            onClick: function (e) {
-                this.$emit('click', e);
-            }
+    var instances = {};
+    var $$id = 0;
+    var worker;
+    var MiniClientPizza = /** @class */ (function (_super) {
+        __extends(MiniClientPizza, _super);
+        function MiniClientPizza() {
+            return _super !== null && _super.apply(this, arguments) || this;
         }
-    };
-
-    var Users = {
-        template: template$1,
-        components: { User: User },
-        props: {
-            list: []
-        },
-        lifecyles: {
-            mounted: function () {
-                this.$emit('click');
+        MiniClientPizza.prototype._init = function () {
+            _super.prototype._init.call(this);
+            instances[this.$$id = $$id++] = this;
+            MiniClientPizza.send(this, 'COMPONENT_CREATED', {
+                props: this.$propsData,
+                context: this.$context ? this.$context['$$id'] : 0,
+                component: this.$componentName,
+            });
+        };
+        MiniClientPizza.prototype.$invoke = function (method) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
             }
-        },
-        methods: {
-            onClickItem: function (item) {
-                return this.onClick.bind(this, item);
-            },
-            onClick: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                this.$emit.apply(this, __spreadArrays(['click:item'], args));
-            }
-        }
-    };
-
-    var App = {
-        template: template,
-        components: {
-            Users: Users
-        },
-        data: {
-            users: _
-        },
-        lifetimes: {
-            mounted: function () {
-                var _this = this;
-                this.$nextTick(function () {
-                    console.log(1);
-                });
-                this.$nextTick(function () {
-                    console.log(3);
-                });
-                setTimeout(function () {
-                    _this.users = _.slice(1);
-                    _this.$nextTick(function () {
-                        console.log(2);
+            MiniClientPizza.send(this, 'COMPONENT_INVOKE', __spreadArrays([method], args));
+        };
+        MiniClientPizza.prototype.$invokeUpdate = function () {
+            MiniClientPizza.send(this, 'UPDATE_COMPONENT', {
+                props: this.$propsData,
+                context: this.$context ? this.$context['$$id'] : 0,
+            });
+        };
+        MiniClientPizza.prototype.$invokeMount = function (element) {
+            this._mountElement = element;
+        };
+        MiniClientPizza.send = function (instance, type, data) {
+            worker.postMessage({
+                id: instance.$$id,
+                data: data ? JSON.stringify(data) : null,
+                type: type
+            }, void 0);
+        };
+        MiniClientPizza.listen = listen;
+        return MiniClientPizza;
+    }(Pizza));
+    function listen(_) {
+        worker = _;
+        worker.addEventListener('message', function (event) {
+            var _a = event.data, id = _a.id, type = _a.type, data = _a.data;
+            var instance = instances[id];
+            data = data ? JSON.parse(data) : null;
+            switch (type) {
+                case 'CREATE_PAGE':
+                    instance = new MiniClientPizza({
+                        render: function () { return data; }
                     });
-                }, 5000);
+                    instance.$mount(document.getElementById('app'));
+                    break;
+                case 'UPDATE_COMPONENT':
+                    instance.$render = function () { return data; };
+                    instance.$mounted && instance.$update();
+                    break;
+                case 'MOUNT_COMPONENT':
+                    instance.$render = function () { return data; };
+                    instance.$mount();
             }
-        },
-        methods: {
-            onUserItemClick: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                console.log(args);
-            }
-        }
-    };
+        });
+    }
+    var MiniClientPizza$1 = config.constructor = MiniClientPizza;
 
-    var instance = new Pizza({
-        components: {
-            App: App,
-        },
-        template: '<app />'
-    });
-    instance.$mount(document.getElementById('app'));
+    MiniClientPizza$1.listen(new Worker('./background.js'));
 
 })));

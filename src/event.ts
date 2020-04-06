@@ -24,7 +24,7 @@ export default class EventEmitter {
 
   $offByPrefix(name: string) {
     helper.util.map(this.$events, (events, key) => {
-      key.indexOf(name) == 0 && this.$off(name);
+      key.indexOf(name) == 0 && this.$off(key);
     });
   }
 

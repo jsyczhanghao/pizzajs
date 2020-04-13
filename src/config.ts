@@ -1,5 +1,3 @@
-import Pizza from './pizza';
-
 export default {
   logo: 'v',
   prefixs: {
@@ -7,6 +5,5 @@ export default {
     bind: ':',
     data: 'data-',
   },
-  delimitter: ['{{', '}}'],
-  constructor: Pizza
+  delimitter: ['{{', '}}']
 };

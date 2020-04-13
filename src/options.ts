@@ -27,8 +27,10 @@ class Options {
   lifetimes: Lifetimes;
   methods: object;
   watch: object;
+  computed: object;
   components: object;
   template: string;
+  style: string;
   render: Function;
 
   constructor(options: any) {
@@ -38,22 +40,10 @@ class Options {
     this.lifetimes = options.lifetimes || {};
     this.methods = options.methods || {};
     this.watch = options.watch || {};
-  //  this.methodsKeys = Object.keys(options.methods);
+    this.computed = options.computed || {};
+    this.style = options.style;
     this.components = options.components = helper.util.camelKeys2ul(options.components);
     this.render = options.render = options.render || makeVNodeFn(options.template, options);
-  }
-
-  get style(): any {
-    // if ('CSSStyleSheet' in window) {
-    //   if (!this._.$$styleSheet) {
-    //     this._.$$styleSheet = new CSSStyleSheet();
-    //     this._.$$styleSheet.replaceSync(this._.style);
-    //   }
-      
-    //   return this._.$$styleSheet;
-    // }
-
-    return this._.style;
   }
 }
 

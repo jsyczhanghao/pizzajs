@@ -5,8 +5,8 @@ class Compiler {
   stack: VNode[];
   now: VNode = { children: [] };
 
-  private static REGEXP: RegExp = /<!--((?:(?!-->)[\s\S])*?)-->|<([a-z]+(?:(?:-[a-z]+)+)?)([^<>]+?)?(\s*\/)?>|<\/([a-z]+(?:(?:-[a-z]+)+)?)>|([\s\S]+?)(?=<|$)/ig;
-  private static ATTR_REPEXP: RegExp = /\s*(\S+?)="([^"]+)"/g;
+  private static REGEXP: RegExp = /<!--((?:(?!-->)[\s\S])*?)-->|<([a-z]+(?:(?:-[a-z]+)+)?)(\s[\s\S]+?)?(\s*\/)?>|<\/([a-z]+(?:(?:-[a-z]+)+)?)>|([\s\S]+?)(?=<|$)/ig;
+  private static ATTR_REPEXP: RegExp = /\s*([^\s"=>\/]+)(?:="([^"]+)")?/g;
 
   constructor(html: string) {
     this.html = html;
@@ -69,7 +69,7 @@ class Compiler {
       let match: RegExpExecArray;
 
       while (match = Compiler.ATTR_REPEXP.exec(str)) {
-        attrs[match[1].toLocaleLowerCase()] = match[2];
+        attrs[match[1]] = match[2] == null ? match[1] : match[2];
       }
     }
 

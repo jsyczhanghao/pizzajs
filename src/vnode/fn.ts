@@ -2,7 +2,6 @@ import VNode, { EMPTY_VNODE } from './vnode';
 import Compiler from '../compiler';
 import helper from '../helper';
 import config from '../config';
-import register from '../register';
 
 function $l(obj: any, fn: Function): VNode {
   return {
@@ -11,7 +10,7 @@ function $l(obj: any, fn: Function): VNode {
 }
 
 function $n(node: string, options: VNode, children: VNode[]): VNode {
-  let component = this.$components[node] || register(node);
+  let component = this.$components[node];
 
   return {
     node,
@@ -54,7 +53,7 @@ function pick(vnode: VNode) {
   }
 
   props['dataset'] = dataset;
-
+  
   return {
     logics,
     events,
@@ -62,10 +61,10 @@ function pick(vnode: VNode) {
   };
 }
 
-function stringify(str: string): string {
+function stringify(str: string, format: boolean = false): string {
   return str
           .replace(/[\s]+/g, ' ')
-          .replace(new RegExp(config.delimitter[0], 'g'), '" + (')
+          .replace(new RegExp(config.delimitter[0], 'g'), `" + ${format ? 'JSON.stringify' : ''}(`)
           .replace(new RegExp(config.delimitter[1], 'g'), ') + "');
 }
 
@@ -97,14 +96,14 @@ function nodeSerialize(vnode: VNode) {
 }
 
 function serialize(vnode: VNode): string {
-  let expression;
+  let expression: string;
 
   if (vnode.node) {
     expression = nodeSerialize(vnode);
   } else if (vnode.isComment) {
     expression = `_$m(${JSON.stringify(vnode.text)})`;
   } else if (vnode.text) {
-    expression = `_$t("${stringify(vnode.text)}")`;
+    expression = `_$t("${stringify(vnode.text, true)}")`;
   }
 
   return expression;
@@ -119,15 +118,16 @@ export default function makeVNodeFn(template: string, context: any): any {
   compiler = null;
 
   if (!data || data.children.length == 0) {
-    throw new Error('instance must be a root element!');
+    throw new Error(`instance must be a root element!\r\n ${template}`);
   } else if (data.children.length > 1) {
     throw new Error(`template\'s root must be only one !\r\n ${template}`);
   }
 
   let props = helper.util.keys(context.props);
   let methods = helper.util.keys(context.methods);
+  let computed = helper.util.keys(context.computed);
   let datas = helper.util.keys(typeof context.data == 'function' ? context.data.call({}) : (context.data || {}));
-  let vars: string = props.concat(methods, datas).map((key) => `${key} = this.${key}`).join(', ');
+  let vars: string = props.concat(methods, datas, computed).map((key) => `${key} = this.${key}`).join(', ');
 
   return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', `
     return function() {

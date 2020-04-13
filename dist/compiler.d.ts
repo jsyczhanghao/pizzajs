@@ -1,4 +1,4 @@
-import { VNode } from './interface';
+import { VNode } from './vnode';
 declare class Compiler {
     readonly html: string;
     stack: VNode[];

@@ -1,2 +1,2 @@
-import { VNode } from '../../interface';
-export default function (now: VNode, old?: VNode): VNode;
+import VNode from '../vnode';
+export default function (now: VNode, old: VNode, context: any): VNode;

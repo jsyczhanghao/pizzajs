@@ -1,18 +1,20 @@
 declare const _default: {
     util: {
         proxy(context: object, object: object, getter: Function, setter?: Function): void;
-        debounce(fn: Function, wait: number): () => void;
-        obj2str(obj: object): string;
-        each(obj: object | [], fn: Function): void;
+        throttle(fn: Function, wait: number): () => void;
+        obj2str(obj: any): any;
+        map(obj: number | object | [], fn: Function): any[];
+        pick(obj: object, keys: string[]): {};
         keys(object?: object): string[];
         camel2ul(str: string): string;
         camelKeys2ul(object?: object): object;
-        same(a: object, b?: object): boolean;
+        same(a: any, b: any): boolean;
+        clone(obj: any): any;
     };
     dom: {
-        createElement(node: string, ...args: any[]): any;
+        createElement(node: string, ...args: any): any;
         updateElement(node: HTMLElement, attrs?: object, listeners?: object): HTMLElement;
-        setAttr(node: any, name: any, value: any): void;
+        setAttr(node: HTMLElement, name: string, value: any): void;
         on(node: HTMLElement, name: string, fn: Function): void;
         off(node: HTMLElement, name: string): void;
         fragment(): DocumentFragment;

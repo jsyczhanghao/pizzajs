@@ -1,7 +1,7 @@
 declare const _default: {
-    createElement(node: string, ...args: any[]): any;
+    createElement(node: string, ...args: any): any;
     updateElement(node: HTMLElement, attrs?: object, listeners?: object): HTMLElement;
-    setAttr(node: any, name: any, value: any): void;
+    setAttr(node: HTMLElement, name: string, value: any): void;
     on(node: HTMLElement, name: string, fn: Function): void;
     off(node: HTMLElement, name: string): void;
     fragment(): DocumentFragment;

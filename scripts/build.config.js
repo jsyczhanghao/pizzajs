@@ -3,14 +3,14 @@ const uglifyjs = require('rollup-plugin-uglify');
 const path = require('path');
 
 export default {
-  input: path.resolve(__dirname, '../src/pizza.ts'),
+  input: path.resolve(__dirname, '../src/index.ts'),
   output: {
     file: path.resolve(__dirname, '../dist/pizza.js'),
     format: 'umd',
-    name: 'pizza'
+    name: 'Pizza'
   },
   plugins: [
-    typescript(),
-    uglifyjs.uglify(),
+    typescript({}),
+    //uglifyjs.uglify(),
   ],
 };

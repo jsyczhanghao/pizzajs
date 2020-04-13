@@ -1,0 +1,13 @@
+.user {
+  padding: 50px;
+}
+
+.name {
+  color: red;
+}
+
+:host {
+  border: 1px solid #eee;
+  display: block;
+  margin: 20px;
+}

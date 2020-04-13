@@ -17,7 +17,7 @@ function del(old) {
 function children2keys(children): object | VNode[] {
   let first = children[0], keysChildren = {};
 
-  if (!first || first.key == null) return children;
+  if (!first || first.key == null) return children.slice(0);
 
   children.forEach((child: VNode) => {
     keysChildren[child.key] = child;
@@ -28,23 +28,21 @@ function children2keys(children): object | VNode[] {
 
 function pick(children, key: string | number) {
   let child = children[key];
-  delete children[key];
+  children[key] = null;
   return child;
 }
 
 function patchChildren(now: VNode, old: VNode, context: any) {
-  let elIndex = 0, oldChildren = children2keys(old.children || []), template: any;
+  let elIndex = 0, oldChildren = children2keys(old?.children || []), template: any;
+  now.el.$$fc = 0;
 
   helper.util.map(now.children, (child: VNode, i: number) => {
     let oldChild = pick(oldChildren, child.key || i);
     let patch: Patch = patchVNode(child, oldChild, context);
 
     switch (patch.type) {
-      case PatchType.ADD:
-        helper.dom.insert(now.el, child.el, elIndex);
-        break;
-
       case PatchType.BATCH:
+        elIndex += child.el.$$fc;
         helper.dom.insert(now.el, child.el, elIndex);
         elIndex += child.el.childNodes.length;
         return;
@@ -52,11 +50,19 @@ function patchChildren(now: VNode, old: VNode, context: any) {
       case PatchType.DEL:
         del(oldChild);
         return;
+
+      case PatchType.ADD:
+        helper.dom.insert(now.el, child.el, elIndex);
+        break;
+
+      default:
+        now.el.$$fc++;
+        break;
     }
 
     elIndex++;
   });
-
+  
   helper.util.map(oldChildren, del);
 }
 
@@ -66,6 +72,7 @@ function patchVNode(now: VNode, old: VNode = {}, context: any): Patch {
   do {
     if (now.componentOptions) {
       patch = patchComponent(now, old, context);
+      now.componentInstance.$children = now.children;
     } else if (now.node) {
       patch = patchNode(now, old, context);
     } else if (now.isComment) {

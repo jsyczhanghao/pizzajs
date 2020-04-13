@@ -1,3 +1,4 @@
-import makeVnodeFn from './fn';
-import vnodePatch from './patch';
-export { makeVnodeFn, vnodePatch, };
+import makeVNodeFn from './fn';
+import patchVNode from './patch';
+import VNode from './vnode';
+export { makeVNodeFn, patchVNode, VNode, };

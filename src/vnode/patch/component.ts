@@ -1,47 +1,45 @@
-import {Patch, PatchType} from './patch';
+import { Patch, PatchType } from './patch';
 import VNode from '../vnode';
 import helper from '../../helper';
 import config from '../../config';
+import constructor from '../../contructor';
 
 function on(instance, events: object = {}) {
   helper.util.map(events, (event, name) => {
-    instance.$on(`${config.constructor.$PROPS_EVENT_PREFIX}${name}`, function(...args) {
+    instance.$on(`${constructor.get().$PROPS_EVENT_PREFIX}${name}`, function (...args) {
       this.$invoke(event, ...args);
     });
   });
 }
 
-export default function (now: VNode, old: VNode, context: any) : Patch{
-  let instance: any = old.componentInstance, type: PatchType;
+export default function (now: VNode, old: VNode, context: any): Patch {
+  let instance: any = old?.componentInstance, type: PatchType;
+  let nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
 
   if (!instance) {
-    now.el = helper.dom.createElement(`${config.logo}-${now.node}`, {
-      ...(now.props['slot'] ? {slot: now.props['slot']} : {})
-    });
-    now.el.$root = now.el.attachShadow({mode: 'open'});
-    instance = new config.constructor(now.componentOptions, {
-      props: now.props,
+    now.el = helper.dom.createElement(`${config.logo}-${now.node}`, nodeAttrs);
+    now.el.$root = now.el.attachShadow({ mode: 'open' });
+    instance = new (constructor.get())(now.componentOptions, {
+      props: helper.util.clone(now.props),
       context: context,
       componentName: now.node,
     });
     on(instance, now.events);
-    instance.$invokeMount(now.el.$root);
+    instance.$mount(now.el.$root);
+    type = PatchType.ADD;
 
-    // if ('adoptedStyleSheets' in now.el.$root) {
-    //   now.el.$root.adoptedStyleSheets = [instance.$options.style];
-    // } else {
+    if (instance.$options.style) {
       let style = document.createElement('style');
       style.textContent = instance.$options.style;
       now.el.$root.appendChild(style);
-   // }
-   
-    type = PatchType.ADD;
-  } else if (!helper.util.same(now.props, old.props)) {
+    }
+  } else if (!helper.util.same(now.props, instance.$propsData)) {
     now.el = old.el;
-    instance.$propsData = now.props;
-    instance.$offByPrefix(config.constructor.$PROPS_EVENT_PREFIX);
+    helper.dom.updateElement(now.el, nodeAttrs);
+    instance.$setPropsData(helper.util.clone(now.props));
+    instance.$offByPrefix(constructor.get().$PROPS_EVENT_PREFIX);
     on(instance, now.events);
-    instance.$invokeUpdate();
+    instance.$update();
     type = PatchType.UPDATE;
   } else {
     now.el = old.el;

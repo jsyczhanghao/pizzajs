@@ -1,11 +1,10 @@
 {
   "name": "pizza",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "a mini's engine",
   "main": "dist/pizza.js",
   "scripts": {
-    "dev": "rollup -w -c scripts/examples.config.js",
-    "background": "rollup -w -c scripts/examples.background.config.js",
+    "dev": "rollup -w -c scripts/dev.config.js",
     "build": "rollup -c scripts/build.config.js",
     "test": "mocha test"
   },
@@ -16,6 +15,7 @@
     "mocha": "^7.1.1",
     "rollup": "^2.3.2",
     "rollup-plugin-html": "^0.2.1",
+    "rollup-plugin-string": "^3.0.0",
     "rollup-plugin-typescript": "^1.0.1",
     "rollup-plugin-typescript2": "^0.26.0",
     "rollup-plugin-uglify": "^6.0.4",

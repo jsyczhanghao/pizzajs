@@ -1,21 +1,27 @@
 export default {
   proxy(context: object, object: object, getter: Function, setter?: Function) {
-    this.keys(object).forEach((key: string) => {
-      Object.defineProperty(context, key, {
-        get: () => getter.call(context, key),
-        set: setter ? (...args) => setter.call(context, key, ...args) : function () { }
+    if (typeof object == 'object') {
+      this.keys(object).forEach((key: string) => this.proxy(context, key, getter, setter));
+    } else {
+      Object.defineProperty(context, object, {
+        get: () => getter.call(context, object),
+        set: setter ? (...args) => setter.call(context, object, ...args) : function () { }
       });
-    });
+    }
   },
 
-  debounce(fn: Function, wait: number) {
+  throttle(fn: Function, wait: number) {
     let timer;
 
     return function () {
       let context = this, args = arguments;
 
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => fn.apply(this, args), wait);
+      if (timer == null) {
+        timer = setTimeout(() => {
+          fn.apply(this, args);
+          timer = null;
+        }, wait);
+      }
     };
   },
 
@@ -41,12 +47,22 @@ export default {
     }
   },
 
+  pick(obj: object = {}, keys: string[]) {
+    let _ = {};
+
+    keys.forEach((key) => {
+      key in obj && (_[key] = obj[key]);
+    });
+
+    return _;
+  },
+
   keys(object: object = {}) {
     return Object.keys(object);
   },
 
   camel2ul(str: string): string {
-    return str.replace(/[A-Z]/, (all: string, index: number) => (index == 0 ? '' : '-') + all.toLowerCase());
+    return str.replace(/[A-Z]/g, (all: string, index: number) => (index == 0 ? '' : '-') + all.toLowerCase());
   },
 
   camelKeys2ul(object: object = {}): object {
@@ -61,5 +77,9 @@ export default {
 
   same(a: any, b: any): boolean {
     return JSON.stringify(a) === JSON.stringify(b);
+  },
+
+  clone(obj: any) {
+    return JSON.parse(JSON.stringify(obj));
   }
 }

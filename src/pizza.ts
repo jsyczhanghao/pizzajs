@@ -3,26 +3,35 @@ import helper from './helper';
 import Options, { OptionsData } from './options';
 import { VNode, patchVNode } from './vnode';
 
+const COMPONENTS = {};
+const $update = helper.util.throttle(function(){
+  this.$forceUpdate();
+}, 0)
+
 class Pizza extends EventEmitter {
+  $componentId: any;
   $options: Options;
   $propsData: object;
   $data: object;
   $vnode: VNode;
   $render: Function;
   $context: Pizza;
+  $children: any[];
   $componentName: string;
   $mounted: boolean = false;
   $destroyed: boolean = false;
   $el?: HTMLElement | Text | Comment | DocumentFragment;
   protected _mountElement?: HTMLElement;
+  static $$id = 0;
 
   constructor(componentOptions: OptionsData = {}, options: any = {}) {
     super();
     this.$options = new Options(componentOptions);
     this.$render = this.$options.render;
-    this.$propsData = options.props;
+    this.$propsData = options.props || {};
     this.$context = options.context;
     this.$componentName = options.componentName;
+    this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
     this._init();
   }
 
@@ -42,6 +51,7 @@ class Pizza extends EventEmitter {
     }
 
     helper.util.proxy(this, this.$data, this.$get, this.$set);
+    helper.util.proxy(this, this.$options.computed, this.$get);
     this.$emit('hook:created');
   }
 
@@ -50,17 +60,34 @@ class Pizza extends EventEmitter {
   }
 
   get $components() {
-    return this.$options.components;
+    return {
+      ...COMPONENTS,
+      ...this.$options.components
+    };
   }
 
   $set(key: string, value: any) {
     if (!(key in this.$data) || value === this.$data[key]) return;
+    let old = this.$data[key];
     this.$data[key] = value;
+    this._invokeWatch(key, value, old);
     this.$update();
   }
 
   $get(key: string, _default?: any) {
-    return this.$methods[key] ?? this.$propsData[key] ?? this.$data[key] ?? _default;
+    if (this.$options.computed[key]) {
+      return this.$options.computed[key].call(this);
+    }
+
+    return this.$methods[key] ?? this.$propsData[key] ?? this.$data[key] ?? this.$options.props[key] ?? _default;
+  }
+
+  $setPropsData(data: object) {
+    helper.util.map(data, (val, key) => {
+      let old = this.$propsData[key];
+      key in this.$options.props && old !== val && this._invokeWatch(key, this.$propsData[key] = val, old);
+    });
+    this.$update();
   }
 
   protected _injectHooks() {
@@ -76,20 +103,25 @@ class Pizza extends EventEmitter {
     return this[method].call(this, ...args);
   }
 
-  $nextTick(fn: Function) {
-    this.$once('hook:$nextTick', fn);
+  private _invokeWatch(key: string, now: any, old: any) {
+    let fn = this.$options.watch[key];
+    fn && fn.call(this, now, old);
   }
 
-  $invokeUpdate() {
-    this.$update();
+  $update() {
+    $update.call(this);
   }
 
-  $update = helper.util.debounce(function () {
+  $forceUpdate() {
     if (!this.$mounted || this.$destroyed) return false;
     this._render();
     this.$emit('hook:updated');
     this.$emit('hook:$nextTick');
-  }, 10)
+  }
+
+  $nextTick(fn: Function) {
+    this.$once('hook:$nextTick', fn);
+  }
 
   protected _render() {
     let vnode: VNode = this.$render.call(this);
@@ -106,10 +138,6 @@ class Pizza extends EventEmitter {
   protected _patch(vnode: VNode) {
     this.$vnode = patchVNode(vnode, this.$vnode, this);
     this.$el = this.$vnode.el;
-  }
-
-  $invokeMount(element?: HTMLElement) {
-    this.$mount(element);
   }
 
   $mount(element?: HTMLElement) {
@@ -131,6 +159,10 @@ class Pizza extends EventEmitter {
   }
   
   static $PROPS_EVENT_PREFIX = 'PROPS_EVENT:';
+  static register(name: string, options?: OptionsData): OptionsData {
+    if (!options) return COMPONENTS[name];
+    return COMPONENTS[name] = options;
+  };
 }
 
 export default Pizza;

@@ -1,4 +1,0 @@
-<div>
-  <users :list="users" @click:item="onUserItemClick"></users>
-  <p>{{123}}</p>
-</div>

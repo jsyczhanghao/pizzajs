@@ -1,1 +1,839 @@
-!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t=t||self).pizza=e()}(this,function(){"use strict";var r=function(t,e){return(r=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)e.hasOwnProperty(n)&&(t[n]=e[n])})(t,e)};var f=function(){return(f=Object.assign||function(t){for(var e,n=1,o=arguments.length;n<o;n++)for(var r in e=arguments[n])Object.prototype.hasOwnProperty.call(e,r)&&(t[r]=e[r]);return t}).apply(this,arguments)};function i(){for(var t=0,e=0,n=arguments.length;e<n;e++)t+=arguments[e].length;var o=Array(t),r=0;for(e=0;e<n;e++)for(var i=arguments[e],s=0,c=i.length;s<c;s++,r++)o[r]=i[s];return o}var d,t,m={};(t=d||(d={}))[t.ADD=0]="ADD",t[t.DEL=1]="DEL",t[t.UPDATE=2]="UPDATE",t[t.BATCH=3]="BATCH",t[t.NONE=4]="NONE";var s={proxy:function(o,t,e,r){this.keys(t).forEach(function(n){Object.defineProperty(o,n,f({get:function(){return e.call(o,n)}},r?{set:function(){for(var t=[],e=0;e<arguments.length;e++)t[e]=arguments[e];return r.call.apply(r,i([o,n],t))}}:{}))})},debounce:function(n,o){var r;return function(){var t=this,e=arguments;r&&clearTimeout(r),r=setTimeout(function(){return n.apply(t,e)},o)}},obj2str:function(e){return"{"+Object.keys(e).map(function(t){return'"'+t+'": '+e[t]}).join(",")+"}"},each:function(t,e){if(void 0===t&&(t=[]),"length"in t)[].forEach.call(t,e);else for(var n in t)e.call(t,t[n],n)},keys:function(t){return void 0===t&&(t={}),Object.keys(t)},camel2ul:function(t){return t.replace(/[A-Z]/,function(t,e){return(0==e?"":"-")+t.toLowerCase()})},camelKeys2ul:function(t){void 0===t&&(t={});var e={};for(var n in t)e[this.camel2ul(n)]=t[n];return e},same:function(t,e){for(var n in void 0===e&&(e={}),t)if(t[n]!==e[n])return!1;return!0}},e={createElement:function(t){for(var e=[],n=1;n<arguments.length;n++)e[n-1]=arguments[n];return this.updateElement.apply(this,i([document.createElement(t)],e))},updateElement:function(n,t,e){var o=this;return t&&s.each(t,function(t,e){return"value"==e?n.value=t:o.setAttr(n,e,t)}),e&&s.each(e,function(t,e){return o.on(n,e,t)}),n},setAttr:function(t,e,n){t.setAttribute(e,n)},on:function(e,n,t){var o=e.$$listeners||{};o[n]=t,e.addEventListener(n,function(t){o[n]&&o[n].call(e,t)},!1),e.$$listeners=o},off:function(t,e){var n=t.$$listeners||{};delete n[e],t.$$listeners=n},fragment:function(){return document.createDocumentFragment()},createText:function(t){return document.createTextNode(t)},createComment:function(t){return void 0===t&&(t=""),document.createComment(t)},insert:function(t,e,n){var o=t.childNodes;return 0==o.length||o.length<n?t.appendChild(e):t.insertBefore(e,o[n])},remove:function(t){t&&t.remove()}},v={util:s,dom:e},c=function(){function o(t){this.now={children:[]},this.html=t,this.stack=[this.now]}return o.prototype.analyse=function(){if(!this.html)return null;for(var t;t=o.REGEXP.exec(this.html);)if(!this.collect.apply(this,t.slice(1)))throw new Error("template parsing error, not a valid structure ~\r\n["+t.index+"]: "+t[0]+"\r\n"+this.html);return this.now},o.prototype.collect=function(t,e,n,o,r,i){do{if(e){var s={node:e.toLocaleLowerCase(),props:this.collectAttrs(n),children:[]};!o&&this.stack.push(s),this.now.children.push(s)}else if(r){if(r.toLocaleLowerCase()!=this.now.node)break;this.stack.pop()}else t?this.now.children.push({isComment:!0,text:t||" "}):i.trim()&&this.now.children.push({text:i});return this.now=this.stack[this.stack.length-1],!0}while(0);return!1},o.prototype.collectAttrs=function(t){var e={};if(t)for(var n=void 0;n=o.ATTR_REPEXP.exec(t);)e[n[1].toLocaleLowerCase()]=n[2];return e},o.REGEXP=/<!--((?:(?!-->)[\s\S])*?)-->|<([a-z]+(?:(?:-[a-z]+)+)?)([^<>]+?)?(\s*\/)?>|<\/([a-z]+(?:(?:-[a-z]+)+)?)>|([\s\S]+?)(?=<|$)/gi,o.ATTR_REPEXP=/\s*(\S+?)="([^"]+)"/g,o}(),o=/[a-z][a-z0-9]*(-[a-z]+)+/,u={};function l(t,e){if(!e)return u[t];if(!o.test(t))throw new Error("Component["+t+"] is not valid, please register a correct component such as [xx-xx]");var n=u[t]=e;n.template&&(n.render=k(n.template,n))}var h=["v-if","v-else-if","v-else","v-for","v-for-index","v-for-item","v-key"],$=/^(?:v-on:|@)/,y=/^(?:v-bind)?:/,n={start:/{{/g,end:/}}/g};function a(t,e){return{isCopy:!0,children:[].map.call(t,e).filter(function(t){return t!==m})}}function p(t,e,n){var o=this.$components[t]||l(t);return o&&!o.render&&(o.render=k(o.template,o)),f(f({node:t},e),{children:n,componentOptions:o})}function E(t){return{text:t}}function _(t){return{isComment:!0,text:t}}function g(t){var e,n=function(t){var e={},n={},o={};for(var r in t.props){var i=t.props[r];-1<h.indexOf(r)?e[r]=i:$.test(r)?n[r.replace($,"")]=i:y.test(r)?o[r.replace(y,"")]=i:o[r]=JSON.stringify(i)}return{logics:e,events:n,props:o}}(t),o=n.logics,r=n.events,i=n.props,s=o["v-for"],c=o["v-if"],u=o["v-else-if"],l=o["v-else"],a=o["v-for-index"]||"$index",p=o["v-for-item"]||"$item";return e='_$n("'+t.node+'", {\n      '+(s&&o["v-key"]?"key: "+o["v-key"]+",":"")+"\n      props: "+v.util.obj2str(i)+",\n      events: "+v.util.obj2str(r)+",\n    }, ["+t.children.map(function(t,e){return x(t)})+"])",c?e=c+" ? "+e+" : _$e":u?e=" && "+u+" ? "+e+" : _$e":l&&(e=" && "+e),s&&(e="_$l("+s+", function("+p+", "+a+") { return "+e+"; })"),e}function x(t){var e;return t.node?e=g(t):t.isComment?e="_$m("+JSON.stringify(t.text)+")":t.text&&(e='_$t("'+t.text.replace(/[\s]+/g," ").replace(n.start,'" + (').replace(n.end,') + "')+'")'),e}function k(t,n){if(n.render)return n.render;var e=new c(t),o=e.analyse();if(e=null,!o||0==o.children.length)throw new Error("instance must be a root element!");if(1<o.children.length)throw new Error("template's root must be only one !\r\n "+t);var r=["props","data","methods"].reduce(function(t,e){return t.concat(v.util.keys(n[e]))},[]).map(function(t){return t+" = this."+t}).join(", ");return n.render=new Function("_$l","_$n","_$t","_$m","_$e","_$cs","\n    return function() {\n      "+(""!=r?"var "+r+";":"")+";\n      _$n = _$n.bind(this);\n      return "+x(o.children[0])+";\n    };\n  ")(a,p,E,_,m),n.render}function w(n,t){void 0===t&&(t={}),v.util.each(t,function(t,e){n.$on("props:"+e,t)})}function D(t){return!!t&&(t.componentInstance&&t.componentInstance.$destroy(),v.dom.remove(t.el),t.el=null,t)}function A(s,t){var e,n,o,c=0,u=(e=t.children||[],n=e[0],o={},n&&null!=n.key?(e.forEach(function(t){o[t.key]=t}),o):e);v.util.each(s.children,function(t,e){var n,o,r,i=(n=u,o=t.key||e,r=n[o],delete n[o],r);switch(b(t,i).type){case d.DEL:return void D(i);case d.ADD:v.dom.insert(s.el,t.el,c);break;case d.BATCH:return v.dom.insert(s.el,t.el,c),void(c+=t.el.childNodes.length)}c++}),v.util.each(u,D)}function b(t,e){var n,o,r,i,s,c,u,l,a,p,h;void 0===e&&(e={});do{if(t.componentOptions)l=t,h=p=void 0,h=(a=e).componentInstance,p=h?v.util.same(l.props,a.props)?(l.el=a.el,d.NONE):(l.el=a.el,h.$propsData=l.props,h.$off("props:"),w(h,l.events),h.$update(),d.UPDATE):(l.el=v.dom.createElement("section"),v.dom.setAttr(l.el,"component-name",l.node),l.el.$root=l.el.attachShadow({mode:"closed"}),w(h=new O(f(f({},l.componentOptions),{propsData:l.props})),l.events),h.$mount(l.el.$root),d.ADD),l.componentInstance=h,n={type:p,vnode:l};else if(t.node)c=t,n={type:(u=e).el?v.util.same(c.props,u.props)?(c.el=u.el,d.NONE):(c.el=v.dom.updateElement(u.el,c.props,c.events),d.UPDATE):(c.el=v.dom.createElement(c.node,c.props,c.events),d.ADD),vnode:c};else{if(t.isComment){i=t,n={type:(s=e).el?(i.el=s.el,d.NONE):(i.el=v.dom.createComment(i.text),d.ADD),vnode:i};break}if(t.text){o=t,n={type:(r=e).el?(o.el=r.el,o.text!=r.text&&(o.el.textContent=o.text),d.UPDATE):(o.el=v.dom.createText(o.text),d.ADD),vnode:o};break}if(t.isCopy)t.el=v.dom.fragment(),n={vnode:t,type:d.BATCH};else{if(t==m){n={vnode:e,type:d.DEL};break}n={vnode:t,type:d.NONE}}}A(t,e)}while(0);return n}var O=function(o){function t(t){var e=o.call(this)||this;return e.$mounted=!1,e.$destroyed=!1,e._nextFns=[],e.$update=v.util.debounce(function(){if(!this.$mounted||this.$destroyed)return!1;this._render(),this.$emit("hook:updated")},10),e.$options=t||{},e.$propsData=t.propsData||{},e.$data=t.data||{},e.$methods=t.methods||{},e.$components=v.util.camelKeys2ul(t.components),e._init(),e}return function(t,e){function n(){this.constructor=t}r(t,e),t.prototype=null===e?Object.create(e):(n.prototype=e.prototype,new n)}(t,o),t.prototype._init=function(){this._injectHooks(),v.util.proxy(this,this.$options.props,this.$get),v.util.proxy(this,this.$methods,this.$get),v.util.proxy(this,this.$data,this.$get,this.$set),this._vnodeFn=this.$options.render?this.$options.render:k(this.$options.template,this.$options),this.$emit("hook:created")},t.prototype.$set=function(t,e){t in this.$data&&e!==this.$data[t]&&(this.$data[t]=e,this.$update())},t.prototype.$get=function(n,t){var e,o,r=this;return this.$methods[n]?function(){for(var t=[],e=0;e<arguments.length;e++)t[e]=arguments[e];return r.$invoke.apply(r,i([n],t))}:null!==(o=null!==(e=this.$propsData[n])&&void 0!==e?e:this.$data[n])&&void 0!==o?o:t},t.prototype._injectHooks=function(){var n=this;v.util.each(this.$options.lifecyles,function(t,e){return n.$on("hook:"+e,t)})},t.prototype.$emit=function(t){for(var e=[],n=1;n<arguments.length;n++)e[n-1]=arguments[n];o.prototype.$emit.apply(this,i([t],e)),o.prototype.$emit.apply(this,i(["props:"+t],e))},t.prototype.$invoke=function(t){for(var e,n=[],o=1;o<arguments.length;o++)n[o-1]=arguments[o];return(e=this.$methods[t]).call.apply(e,i([this],n))},t.prototype.$nextTick=function(t){this._nextFns.push(t)},t.prototype._render=function(){var t,e,n=this,o=this._vnodeFn();this._mountElement&&(o={el:this._mountElement,children:[o]}),this._vnode=(t=o,void 0===(e=this._vnode)&&(e={}),b(t,e).vnode),this._nextFns.forEach(function(t){return t.call(n)}),this._nextFns.length=0},t.prototype.$mount=function(t){if(this.$mounted)return!1;t&&(t.innerHTML="",this._mountElement=t),this._render(),this.$el=this._vnode.el,this.$mounted=!0,this.$emit("hook:mounted"),console.log(this)},t.prototype.$destroy=function(){this.$destroyed=!0,this.$emit("hook:destroyed")},t.register=l,t}(function(){function t(){this.$events={}}return t.prototype.$on=function(t,e){var n,o=null!==(n=this.$events[t])&&void 0!==n?n:[];o.push(e),this.$events[t]=o},t.prototype.$emit=function(t){for(var e=this,n=[],o=1;o<arguments.length;o++)n[o-1]=arguments[o];(this.$events[t]||[]).forEach(function(t){return t.apply(e,n)})},t.prototype.$off=function(n){var o=this;/:$/.test(n)?v.util.each(this.$events,function(t,e){0==e.indexOf(n)&&delete o.$events[e]}):delete this.$events[n]},t}());return O});
+(function (global, factory) {
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+    (global = global || self, factory(global.Pizza = {}));
+}(this, (function (exports) { 'use strict';
+
+    /*! *****************************************************************************
+    Copyright (c) Microsoft Corporation. All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+    this file except in compliance with the License. You may obtain a copy of the
+    License at http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+    WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+    MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing permissions
+    and limitations under the License.
+    ***************************************************************************** */
+    /* global Reflect, Promise */
+
+    var extendStatics = function(d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+
+    function __extends(d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    }
+
+    var __assign = function() {
+        __assign = Object.assign || function __assign(t) {
+            for (var s, i = 1, n = arguments.length; i < n; i++) {
+                s = arguments[i];
+                for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+            }
+            return t;
+        };
+        return __assign.apply(this, arguments);
+    };
+
+    function __spreadArrays() {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    }
+
+    var util = {
+        proxy: function (context, object, getter, setter) {
+            var _this = this;
+            if (typeof object == 'object') {
+                this.keys(object).forEach(function (key) { return _this.proxy(context, key, getter, setter); });
+            }
+            else {
+                Object.defineProperty(context, object, {
+                    get: function () { return getter.call(context, object); },
+                    set: setter ? function () {
+                        var args = [];
+                        for (var _i = 0; _i < arguments.length; _i++) {
+                            args[_i] = arguments[_i];
+                        }
+                        return setter.call.apply(setter, __spreadArrays([context, object], args));
+                    } : function () { }
+                });
+            }
+        },
+        throttle: function (fn, wait) {
+            var timer;
+            return function () {
+                var _this = this;
+                var args = arguments;
+                if (timer == null) {
+                    timer = setTimeout(function () {
+                        fn.apply(_this, args);
+                        timer = null;
+                    }, wait);
+                }
+            };
+        },
+        obj2str: function (obj) {
+            var _this = this;
+            if (typeof obj == 'object') {
+                return '{' + Object.keys(obj).map(function (key) { return "\"" + key + "\": " + _this.obj2str(obj[key]); }).join(',') + '}';
+            }
+            else {
+                return obj;
+            }
+        },
+        map: function (obj, fn) {
+            if (obj === void 0) { obj = []; }
+            if (typeof obj == 'number') {
+                var _ = [], i = 0;
+                while (i++ < obj)
+                    _.push(i);
+                return _;
+            }
+            else if ('length' in obj) {
+                return [].map.call(obj, fn);
+            }
+            else {
+                return this.keys(obj).map(function (key) {
+                    return fn(obj[key], key);
+                });
+            }
+        },
+        pick: function (obj, keys) {
+            if (obj === void 0) { obj = {}; }
+            var _ = {};
+            keys.forEach(function (key) {
+                key in obj && (_[key] = obj[key]);
+            });
+            return _;
+        },
+        keys: function (object) {
+            if (object === void 0) { object = {}; }
+            return Object.keys(object);
+        },
+        camel2ul: function (str) {
+            return str.replace(/[A-Z]/g, function (all, index) { return (index == 0 ? '' : '-') + all.toLowerCase(); });
+        },
+        camelKeys2ul: function (object) {
+            if (object === void 0) { object = {}; }
+            var _ = {};
+            for (var key in object) {
+                _[this.camel2ul(key)] = object[key];
+            }
+            return _;
+        },
+        same: function (a, b) {
+            return JSON.stringify(a) === JSON.stringify(b);
+        },
+        clone: function (obj) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+    };
+
+    var ATTR_MAPS = {
+        'class': 'className',
+        'dataset': '$dataset',
+    };
+    var dom = {
+        createElement: function (node) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            return this.updateElement.apply(this, __spreadArrays([document.createElement(node)], args));
+        },
+        updateElement: function (node, attrs, listeners) {
+            var _this = this;
+            //@ts-ignore
+            attrs && util.map(attrs, function (val, key) {
+                _this.setAttr(node, key, val);
+            });
+            listeners && util.map(listeners, function (fn, key) { return _this.on(node, key, fn); });
+            return node;
+        },
+        setAttr: function (node, name, value) {
+            name = ATTR_MAPS[name] || name;
+            node[name] = value;
+        },
+        on: function (node, name, fn) {
+            var $$listeners = node['$$listeners'] || {};
+            var _a = name.split('.'), event = _a[0], action = _a[1];
+            $$listeners[event] = fn;
+            node.addEventListener(event, function (e) {
+                e.dataset = node['$dataset'];
+                $$listeners[event] && $$listeners[event].call(node, e);
+                action == 'stop' ? e.stopPropagation() : action == 'prevent' ? e.preventDefault() : null;
+            }, false);
+            node['$$listeners'] = $$listeners;
+        },
+        off: function (node, name) {
+            var $$listeners = node['$$listeners'] || {};
+            delete $$listeners[name];
+            node['$$listeners'] = $$listeners;
+        },
+        fragment: function () {
+            return document.createDocumentFragment();
+        },
+        createText: function (text) {
+            return document.createTextNode(text);
+        },
+        createComment: function (comment) {
+            if (comment === void 0) { comment = ''; }
+            return document.createComment(comment);
+        },
+        insert: function (parent, el, index) {
+            if (index < 0)
+                return false;
+            var children = parent.childNodes;
+            return children.length == 0 || children.length < index ? parent.appendChild(el) : parent.insertBefore(el, children[index]);
+        },
+        remove: function (el) {
+            el && el.remove();
+        }
+    };
+
+    var helper = {
+        util: util,
+        dom: dom,
+    };
+
+    var EventEmitter = /** @class */ (function () {
+        function EventEmitter() {
+            this.$events = {};
+        }
+        EventEmitter.prototype.$on = function (name, fn) {
+            var _a;
+            var events = (_a = this.$events[name]) !== null && _a !== void 0 ? _a : [];
+            events.push(fn);
+            this.$events[name] = events;
+        };
+        EventEmitter.prototype.$emit = function (name) {
+            var _this = this;
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            (this.$events[name] || []).slice(0).forEach(function (fn) { return fn.call.apply(fn, __spreadArrays([_this], args)); });
+        };
+        EventEmitter.prototype.$off = function (name, fn) {
+            if (!fn) {
+                delete this.$events[name];
+            }
+            else {
+                var i = this.$events[name].indexOf(fn);
+                i > -1 && this.$events[name].splice(i, 1);
+            }
+        };
+        EventEmitter.prototype.$offByPrefix = function (name) {
+            var _this = this;
+            helper.util.map(this.$events, function (events, key) {
+                key.indexOf(name) == 0 && _this.$off(key);
+            });
+        };
+        EventEmitter.prototype.$once = function (name, fn) {
+            var _this = this;
+            var f = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                fn.call.apply(fn, __spreadArrays([_this], args));
+                _this.$off(name, f);
+            };
+            this.$on(name, f);
+        };
+        return EventEmitter;
+    }());
+
+    var EMPTY_VNODE = {};
+
+    var Compiler = /** @class */ (function () {
+        function Compiler(html) {
+            this.now = { children: [] };
+            this.html = html;
+            this.stack = [this.now];
+        }
+        Compiler.prototype.analyse = function () {
+            if (!this.html)
+                return null;
+            var match;
+            while (match = Compiler.REGEXP.exec(this.html)) {
+                if (!this.collect.apply(this, match.slice(1))) {
+                    throw new Error("template parsing error, not a valid structure ~\r\n[" + match.index + "]: " + match[0] + "\r\n" + this.html);
+                }
+            }
+            return this.now;
+        };
+        Compiler.prototype.collect = function (comment, node, props, single, close, text) {
+            do {
+                if (node) {
+                    var vnode = {
+                        node: node.toLocaleLowerCase(),
+                        props: this.collectAttrs(props),
+                        children: [],
+                    };
+                    !single && this.stack.push(vnode);
+                    this.now.children.push(vnode);
+                }
+                else if (close) {
+                    if (close.toLocaleLowerCase() != this.now.node) {
+                        break;
+                    }
+                    else {
+                        this.stack.pop();
+                    }
+                }
+                else if (comment) {
+                    this.now.children.push({
+                        isComment: true,
+                        text: comment
+                    });
+                }
+                else if (text.trim()) {
+                    this.now.children.push({
+                        text: text,
+                    });
+                }
+                this.now = this.stack[this.stack.length - 1];
+                return true;
+            } while (0);
+            return false;
+        };
+        Compiler.prototype.collectAttrs = function (str) {
+            var attrs = {};
+            if (str) {
+                var match = void 0;
+                while (match = Compiler.ATTR_REPEXP.exec(str)) {
+                    attrs[match[1]] = match[2] == null ? match[1] : match[2];
+                }
+            }
+            return attrs;
+        };
+        Compiler.REGEXP = /<!--((?:(?!-->)[\s\S])*?)-->|<([a-z]+(?:(?:-[a-z]+)+)?)(\s[\s\S]+?)?(\s*\/)?>|<\/([a-z]+(?:(?:-[a-z]+)+)?)>|([\s\S]+?)(?=<|$)/ig;
+        Compiler.ATTR_REPEXP = /\s*([^\s"=>\/]+)(?:="([^"]+)")?/g;
+        return Compiler;
+    }());
+
+    var config = {
+        logo: 'v',
+        prefixs: {
+            event: '@',
+            bind: ':',
+            data: 'data-',
+        },
+        delimitter: ['{{', '}}']
+    };
+
+    function $l(obj, fn) {
+        return {
+            children: helper.util.map(obj, fn).filter(function (vnode) { return vnode !== EMPTY_VNODE; })
+        };
+    }
+    function $n(node, options, children) {
+        var component = this.$components[node];
+        return __assign(__assign({ node: node }, options), { children: children, componentOptions: component });
+    }
+    function $t(text) {
+        return {
+            text: text
+        };
+    }
+    function $m(comment) {
+        return {
+            isComment: true,
+            text: comment
+        };
+    }
+    function pick(vnode) {
+        var logics = {}, events = {}, props = {}, dataset = {};
+        for (var key in vnode.props) {
+            var val = vnode.props[key];
+            if (key.indexOf(config.logo + '-') == 0) {
+                logics[key.substr(config.logo.length + 1)] = val;
+            }
+            else if (key.indexOf(config.prefixs.event) == 0) {
+                events[key.substr(config.prefixs.event.length)] = "\"" + val + "\"";
+            }
+            else if (key.indexOf(config.prefixs.bind) == 0) {
+                props[key.substr(config.prefixs.bind.length)] = val;
+            }
+            else if (key.indexOf(config.prefixs.data) == 0) {
+                dataset[key.substr(config.prefixs.data.length)] = val;
+            }
+            else {
+                props[key] = JSON.stringify(val);
+            }
+        }
+        props['dataset'] = dataset;
+        return {
+            logics: logics,
+            events: events,
+            props: props,
+        };
+    }
+    function stringify(str, format) {
+        if (format === void 0) { format = false; }
+        return str
+            .replace(/[\s]+/g, ' ')
+            .replace(new RegExp(config.delimitter[0], 'g'), "\" + " + (format ? 'JSON.stringify' : '') + "(")
+            .replace(new RegExp(config.delimitter[1], 'g'), ') + "');
+    }
+    function nodeSerialize(vnode) {
+        var expression;
+        var _a = pick(vnode), logics = _a.logics, events = _a.events, props = _a.props;
+        var _for = logics['for'], _if = logics['if'], _elseif = logics['elseif'] || logics['else-if'], _else = logics['else'];
+        var index = logics['for-index'] || '$index', item = logics['for-item'] || '$item';
+        expression = "_$n(\"" + vnode.node + "\", {\n      " + (_for && logics['key'] ? 'key: ' + logics['key'] + ',' : '') + "\n      props: " + helper.util.obj2str(props) + ",\n      events: " + helper.util.obj2str(events) + ",\n    }, [" + vnode.children.map(function (child, i) { return serialize(child); }) + "])";
+        if (_if) {
+            expression = _if + " ? " + expression + " : _$e";
+        }
+        else if (_elseif) {
+            expression = " && " + _elseif + " ? " + expression + " : _$e";
+        }
+        else if (_else) {
+            expression = " && " + expression;
+        }
+        if (_for) {
+            expression = "_$l(" + _for + ", function(" + item + ", " + index + ") { return " + expression + "; })";
+        }
+        return expression;
+    }
+    function serialize(vnode) {
+        var expression;
+        if (vnode.node) {
+            expression = nodeSerialize(vnode);
+        }
+        else if (vnode.isComment) {
+            expression = "_$m(" + JSON.stringify(vnode.text) + ")";
+        }
+        else if (vnode.text) {
+            expression = "_$t(\"" + stringify(vnode.text, true) + "\")";
+        }
+        return expression;
+    }
+    function makeVNodeFn(template, context) {
+        if (!template)
+            return function () { };
+        var compiler = new Compiler(template);
+        var data = compiler.analyse();
+        compiler = null;
+        if (!data || data.children.length == 0) {
+            throw new Error("instance must be a root element!\r\n " + template);
+        }
+        else if (data.children.length > 1) {
+            throw new Error("template's root must be only one !\r\n " + template);
+        }
+        var props = helper.util.keys(context.props);
+        var methods = helper.util.keys(context.methods);
+        var computed = helper.util.keys(context.computed);
+        var datas = helper.util.keys(typeof context.data == 'function' ? context.data.call({}) : (context.data || {}));
+        var vars = props.concat(methods, datas, computed).map(function (key) { return key + " = this." + key; }).join(', ');
+        return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]) + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
+    }
+
+    var Options = /** @class */ (function () {
+        function Options(options) {
+            this._ = options;
+            this.props = options.props || {};
+            this.data = options.data || {};
+            this.lifetimes = options.lifetimes || {};
+            this.methods = options.methods || {};
+            this.watch = options.watch || {};
+            this.computed = options.computed || {};
+            this.style = options.style;
+            this.components = options.components = helper.util.camelKeys2ul(options.components);
+            this.render = options.render = options.render || makeVNodeFn(options.template, options);
+        }
+        return Options;
+    }());
+
+    var PatchType;
+    (function (PatchType) {
+        PatchType[PatchType["ADD"] = 0] = "ADD";
+        PatchType[PatchType["DEL"] = 1] = "DEL";
+        PatchType[PatchType["UPDATE"] = 2] = "UPDATE";
+        PatchType[PatchType["BATCH"] = 3] = "BATCH";
+        PatchType[PatchType["NONE"] = 4] = "NONE";
+    })(PatchType || (PatchType = {}));
+
+    var constructor;
+    var contructor = {
+        set: function (F) {
+            return constructor = F;
+        },
+        get: function () {
+            return constructor;
+        }
+    };
+
+    function on(instance, events) {
+        if (events === void 0) { events = {}; }
+        helper.util.map(events, function (event, name) {
+            instance.$on("" + contructor.get().$PROPS_EVENT_PREFIX + name, function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                this.$invoke.apply(this, __spreadArrays([event], args));
+            });
+        });
+    }
+    function patchComponent (now, old, context) {
+        var instance = old === null || old === void 0 ? void 0 : old.componentInstance, type;
+        var nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
+        if (!instance) {
+            now.el = helper.dom.createElement(config.logo + "-" + now.node, nodeAttrs);
+            now.el.$root = now.el.attachShadow({ mode: 'open' });
+            instance = new (contructor.get())(now.componentOptions, {
+                props: helper.util.clone(now.props),
+                context: context,
+                componentName: now.node,
+            });
+            on(instance, now.events);
+            instance.$mount(now.el.$root);
+            type = PatchType.ADD;
+            if (instance.$options.style) {
+                var style = document.createElement('style');
+                style.textContent = instance.$options.style;
+                now.el.$root.appendChild(style);
+            }
+        }
+        else if (!helper.util.same(now.props, instance.$propsData)) {
+            now.el = old.el;
+            helper.dom.updateElement(now.el, nodeAttrs);
+            instance.$setPropsData(helper.util.clone(now.props));
+            instance.$offByPrefix(contructor.get().$PROPS_EVENT_PREFIX);
+            on(instance, now.events);
+            instance.$update();
+            type = PatchType.UPDATE;
+        }
+        else {
+            now.el = old.el;
+            type = PatchType.NONE;
+        }
+        now.componentInstance = instance;
+        return {
+            type: type,
+            vnode: now,
+        };
+    }
+
+    function patchNode (now, old, context) {
+        var type;
+        var events = {};
+        helper.util.map(now.events || {}, function (event, key) {
+            events[key] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                context.$invoke.apply(context, __spreadArrays([event], args));
+            };
+        });
+        if (!old.el) {
+            now.el = helper.dom.createElement(now.node, now.props, events);
+            type = PatchType.ADD;
+        }
+        else if (!helper.util.same(now.props, old.props)) {
+            now.el = helper.dom.updateElement(old.el, now.props, event);
+            type = PatchType.UPDATE;
+        }
+        else {
+            now.el = old.el;
+            type = PatchType.NONE;
+        }
+        return {
+            type: type,
+            vnode: now,
+        };
+    }
+
+    function patchText (now, old) {
+        var type;
+        if (old.el) {
+            now.el = old.el;
+            now.text != old.text && (now.el.textContent = now.text);
+            type = PatchType.UPDATE;
+        }
+        else {
+            now.el = helper.dom.createText(now.text);
+            type = PatchType.ADD;
+        }
+        return {
+            type: type,
+            vnode: now,
+        };
+    }
+
+    function patchComment (now, old) {
+        var type;
+        if (!old.el) {
+            now.el = helper.dom.createComment(now.text);
+            type = PatchType.ADD;
+        }
+        else {
+            now.el = old.el;
+            type = PatchType.NONE;
+        }
+        return {
+            type: type,
+            vnode: now,
+        };
+    }
+
+    function del(old) {
+        if (!old)
+            return false;
+        old.componentInstance && old.componentInstance.$destroy();
+        helper.dom.remove(old.el);
+        old.el = null;
+        return old;
+    }
+    function children2keys(children) {
+        var first = children[0], keysChildren = {};
+        if (!first || first.key == null)
+            return children.slice(0);
+        children.forEach(function (child) {
+            keysChildren[child.key] = child;
+        });
+        return keysChildren;
+    }
+    function pick$1(children, key) {
+        var child = children[key];
+        children[key] = null;
+        return child;
+    }
+    function patchChildren(now, old, context) {
+        var elIndex = 0, oldChildren = children2keys((old === null || old === void 0 ? void 0 : old.children) || []);
+        now.el.$$fc = 0;
+        helper.util.map(now.children, function (child, i) {
+            var oldChild = pick$1(oldChildren, child.key || i);
+            var patch = patchVNode(child, oldChild, context);
+            switch (patch.type) {
+                case PatchType.BATCH:
+                    elIndex += child.el.$$fc;
+                    helper.dom.insert(now.el, child.el, elIndex);
+                    elIndex += child.el.childNodes.length;
+                    return;
+                case PatchType.DEL:
+                    del(oldChild);
+                    return;
+                case PatchType.ADD:
+                    helper.dom.insert(now.el, child.el, elIndex);
+                    break;
+                default:
+                    now.el.$$fc++;
+                    break;
+            }
+            elIndex++;
+        });
+        helper.util.map(oldChildren, del);
+    }
+    function patchVNode(now, old, context) {
+        if (old === void 0) { old = {}; }
+        var patch;
+        do {
+            if (now.componentOptions) {
+                patch = patchComponent(now, old, context);
+                now.componentInstance.$children = now.children;
+            }
+            else if (now.node) {
+                patch = patchNode(now, old, context);
+            }
+            else if (now.isComment) {
+                patch = patchComment(now, old);
+                break;
+            }
+            else if (now.text) {
+                patch = patchText(now, old);
+                break;
+            }
+            else if (now == EMPTY_VNODE) {
+                patch = { vnode: old, type: PatchType.DEL };
+                break;
+            }
+            else if (!now.el && now.children) {
+                now.el = helper.dom.fragment();
+                patch = { vnode: now, type: PatchType.BATCH };
+            }
+            else {
+                patch = { vnode: now, type: PatchType.NONE };
+            }
+            patchChildren(now, old, context);
+        } while (0);
+        return patch;
+    }
+    function patchVNode$1 (now, old, context) {
+        if (old === void 0) { old = {}; }
+        return patchVNode(now, old, context).vnode;
+    }
+
+    var COMPONENTS = {};
+    var $update = helper.util.throttle(function () {
+        this.$forceUpdate();
+    }, 0);
+    var Pizza = /** @class */ (function (_super) {
+        __extends(Pizza, _super);
+        function Pizza(componentOptions, options) {
+            if (componentOptions === void 0) { componentOptions = {}; }
+            if (options === void 0) { options = {}; }
+            var _this = _super.call(this) || this;
+            _this.$mounted = false;
+            _this.$destroyed = false;
+            _this.$options = new Options(componentOptions);
+            _this.$render = _this.$options.render;
+            _this.$propsData = options.props || {};
+            _this.$context = options.context;
+            _this.$componentName = options.componentName;
+            _this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
+            _this._init();
+            return _this;
+        }
+        Pizza.prototype._init = function () {
+            //inject lifecycles hook
+            this._injectHooks();
+            //proxy methods and data
+            helper.util.proxy(this, __assign(__assign({}, this.$options.props), this.$options.methods), this.$get);
+            if (typeof this.$options.data == 'function') {
+                this.$data = this.$options.data.call(this);
+            }
+            else {
+                this.$data = this.$options.data;
+            }
+            helper.util.proxy(this, this.$data, this.$get, this.$set);
+            helper.util.proxy(this, this.$options.computed, this.$get);
+            this.$emit('hook:created');
+        };
+        Object.defineProperty(Pizza.prototype, "$methods", {
+            get: function () {
+                return this.$options.methods;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Pizza.prototype, "$components", {
+            get: function () {
+                return __assign(__assign({}, COMPONENTS), this.$options.components);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Pizza.prototype.$set = function (key, value) {
+            if (!(key in this.$data) || value === this.$data[key])
+                return;
+            var old = this.$data[key];
+            this.$data[key] = value;
+            this._invokeWatch(key, value, old);
+            this.$update();
+        };
+        Pizza.prototype.$get = function (key, _default) {
+            var _a, _b, _c, _d;
+            if (this.$options.computed[key]) {
+                return this.$options.computed[key].call(this);
+            }
+            return (_d = (_c = (_b = (_a = this.$methods[key]) !== null && _a !== void 0 ? _a : this.$propsData[key]) !== null && _b !== void 0 ? _b : this.$data[key]) !== null && _c !== void 0 ? _c : this.$options.props[key]) !== null && _d !== void 0 ? _d : _default;
+        };
+        Pizza.prototype.$setPropsData = function (data) {
+            var _this = this;
+            helper.util.map(data, function (val, key) {
+                var old = _this.$propsData[key];
+                key in _this.$options.props && old !== val && _this._invokeWatch(key, _this.$propsData[key] = val, old);
+            });
+            this.$update();
+        };
+        Pizza.prototype._injectHooks = function () {
+            var _this = this;
+            helper.util.map(this.$options.lifetimes, function (fn, lifetime) { return _this.$on("hook:" + lifetime, fn); });
+        };
+        Pizza.prototype.$emit = function (name) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            _super.prototype.$emit.apply(this, __spreadArrays([name], args));
+            _super.prototype.$emit.apply(this, __spreadArrays(["" + Pizza.$PROPS_EVENT_PREFIX + name], args));
+        };
+        Pizza.prototype.$invoke = function (method) {
+            var _a;
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            return (_a = this[method]).call.apply(_a, __spreadArrays([this], args));
+        };
+        Pizza.prototype._invokeWatch = function (key, now, old) {
+            var fn = this.$options.watch[key];
+            fn && fn.call(this, now, old);
+        };
+        Pizza.prototype.$update = function () {
+            $update.call(this);
+        };
+        Pizza.prototype.$forceUpdate = function () {
+            if (!this.$mounted || this.$destroyed)
+                return false;
+            this._render();
+            this.$emit('hook:updated');
+            this.$emit('hook:$nextTick');
+        };
+        Pizza.prototype.$nextTick = function (fn) {
+            this.$once('hook:$nextTick', fn);
+        };
+        Pizza.prototype._render = function () {
+            var vnode = this.$render.call(this);
+            if (!vnode)
+                return false;
+            if (this._mountElement) {
+                vnode = { el: this._mountElement, children: [vnode] };
+            }
+            this._patch(vnode);
+        };
+        Pizza.prototype._patch = function (vnode) {
+            this.$vnode = patchVNode$1(vnode, this.$vnode, this);
+            this.$el = this.$vnode.el;
+        };
+        Pizza.prototype.$mount = function (element) {
+            if (this.$mounted)
+                return;
+            if (element) {
+                this._mountElement = element;
+            }
+            this._render();
+            this.$mounted = true;
+            this.$emit('hook:mounted');
+            this.$emit('hook:$nextTick');
+        };
+        Pizza.prototype.$destroy = function () {
+            this.$destroyed = true;
+            this.$emit('hook:destroyed');
+        };
+        Pizza.register = function (name, options) {
+            if (!options)
+                return COMPONENTS[name];
+            return COMPONENTS[name] = options;
+        };
+        Pizza.$$id = 0;
+        Pizza.$PROPS_EVENT_PREFIX = 'PROPS_EVENT:';
+        return Pizza;
+    }(EventEmitter));
+
+    contructor.set(Pizza);
+
+    exports.Pizza = Pizza;
+    exports.PizzaContructor = contructor;
+    exports.default = Pizza;
+    exports.helper = helper;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
+
+})));

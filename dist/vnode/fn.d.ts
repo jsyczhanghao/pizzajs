@@ -1,2 +1,1 @@
-import { Options } from '../interface';
-export default function makeVNodeFn(template: string, context: Options): any;
+export default function makeVNodeFn(template: string, context: any): any;

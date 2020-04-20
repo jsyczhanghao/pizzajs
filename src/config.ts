@@ -4,6 +4,7 @@ export default {
     event: '@',
     bind: ':',
     data: 'data-',
+    component: '',
   },
   delimitter: ['{{', '}}']
 };

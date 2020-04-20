@@ -4,6 +4,7 @@ declare const _default: {
         event: string;
         bind: string;
         data: string;
+        component: string;
     };
     delimitter: string[];
 };

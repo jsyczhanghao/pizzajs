@@ -86,7 +86,7 @@
         obj2str: function (obj) {
             var _this = this;
             if (typeof obj == 'object') {
-                return '{' + Object.keys(obj).map(function (key) { return "\"" + key + "\": " + _this.obj2str(obj[key]); }).join(',') + '}';
+                return '{' + Object.keys(obj).map(function (key) { return "'" + key + "': " + _this.obj2str(obj[key]); }).join(',') + '}';
             }
             else {
                 return obj;
@@ -167,10 +167,12 @@
         },
         on: function (node, name, fn) {
             var $$listeners = node['$$listeners'] || {};
-            $$listeners[name] = fn;
-            node.addEventListener(name, function (e) {
+            var _a = name.split('.'), event = _a[0], action = _a[1];
+            $$listeners[event] = fn;
+            node.addEventListener(event, function (e) {
                 e.dataset = node['$dataset'];
-                $$listeners[name] && $$listeners[name].call(node, e);
+                $$listeners[event] && $$listeners[event].call(node, e);
+                action == 'stop' ? e.stopPropagation() : action == 'prevent' ? e.preventDefault() : null;
             }, false);
             node['$$listeners'] = $$listeners;
         },
@@ -197,6 +199,13 @@
         },
         remove: function (el) {
             el && el.remove();
+        },
+        injectStyle: function (el, style) {
+            if (!style)
+                return false;
+            var styleEl = document.createElement('style');
+            styleEl.textContent = style;
+            el.insertBefore(styleEl, el.firstChild);
         }
     };
 
@@ -328,6 +337,7 @@
             event: '@',
             bind: ':',
             data: 'data-',
+            component: '',
         },
         delimitter: ['{{', '}}']
     };
@@ -487,12 +497,17 @@
         });
     }
     function patchComponent (now, old, context) {
-        console.log(now, old);
         var instance = old === null || old === void 0 ? void 0 : old.componentInstance, type;
         var nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
         if (!instance) {
-            now.el = helper.dom.createElement(config.logo + "-" + now.node, nodeAttrs);
-            now.el.$root = now.el.attachShadow({ mode: 'open' });
+            var node = "" + ( '') + now.node;
+            now.el = helper.dom.createElement(node, nodeAttrs);
+            try {
+                now.el.$root = now.el.attachShadow({ mode: 'closed' });
+            }
+            catch (e) {
+                throw new Error("Component[" + node + "] is not valid, the name must be like [xx-xx]");
+            }
             instance = new (contructor.get())(now.componentOptions, {
                 props: helper.util.clone(now.props),
                 context: context,
@@ -501,11 +516,6 @@
             on(instance, now.events);
             instance.$mount(now.el.$root);
             type = PatchType.ADD;
-            if (instance.$options.style) {
-                var style = document.createElement('style');
-                style.textContent = instance.$options.style;
-                now.el.$root.appendChild(style);
-            }
         }
         else if (!helper.util.same(now.props, instance.$propsData)) {
             now.el = old.el;
@@ -644,6 +654,7 @@
         do {
             if (now.componentOptions) {
                 patch = patchComponent(now, old, context);
+                now.componentInstance.$children = now.children;
             }
             else if (now.node) {
                 patch = patchNode(now, old, context);
@@ -677,6 +688,9 @@
     }
 
     var COMPONENTS = {};
+    var $update = helper.util.throttle(function () {
+        this.$forceUpdate();
+    }, 0);
     var Pizza = /** @class */ (function (_super) {
         __extends(Pizza, _super);
         function Pizza(componentOptions, options) {
@@ -685,9 +699,6 @@
             var _this = _super.call(this) || this;
             _this.$mounted = false;
             _this.$destroyed = false;
-            _this.$update = helper.util.throttle(function () {
-                this.$forceUpdate();
-            }, 0);
             _this.$options = new Options(componentOptions);
             _this.$render = _this.$options.render;
             _this.$propsData = options.props || {};
@@ -737,7 +748,7 @@
         Pizza.prototype.$get = function (key, _default) {
             var _a, _b, _c, _d;
             if (this.$options.computed[key]) {
-                return this.$options.components[key].call(this);
+                return this.$options.computed[key].call(this);
             }
             return (_d = (_c = (_b = (_a = this.$methods[key]) !== null && _a !== void 0 ? _a : this.$propsData[key]) !== null && _b !== void 0 ? _b : this.$data[key]) !== null && _c !== void 0 ? _c : this.$options.props[key]) !== null && _d !== void 0 ? _d : _default;
         };
@@ -771,7 +782,10 @@
         };
         Pizza.prototype._invokeWatch = function (key, now, old) {
             var fn = this.$options.watch[key];
-            fn && fn.call(this, key, now, old);
+            fn && fn.call(this, now, old);
+        };
+        Pizza.prototype.$update = function () {
+            $update.call(this);
         };
         Pizza.prototype.$forceUpdate = function () {
             if (!this.$mounted || this.$destroyed)
@@ -806,6 +820,7 @@
             this.$mounted = true;
             this.$emit('hook:mounted');
             this.$emit('hook:$nextTick');
+            helper.dom.injectStyle(this.$el, this.$options.style);
         };
         Pizza.prototype.$destroy = function () {
             this.$destroyed = true;
@@ -823,7 +838,9 @@
 
     contructor.set(Pizza);
 
-    var template = "<div>\n  <users \n    :list=\"users\" \n    @click=\"onClickItem\" \n  />\n</div>";
+    var template = "<div>\n  <user-list \n    :list=\"users\" \n    @click=\"onClickItem\" \n  />\n</div>";
+
+    var style = "div {\n  font-size: 28px;\n}";
 
     var arr = [
       {
@@ -854,15 +871,15 @@
       });
     }
 
-    var template$1 = "<div style=\"height: 100%;\">\n  <user v-for=\"list\" v-for-item=\"$item\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem\">\n    <!-- <span slot=\"name\">{{$item.name}}</span> -->\n   {{$item.fav}}\n  </user>\n</div>";
+    var template$1 = "<div style=\"height: 100%;\">\n  <user-item v-for=\"list\" v-for-item=\"$item\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem\">\n    <!-- <span slot=\"name\">{{$item.name}}</span> -->\n   {{$item.fav}}\n  </user-item>\n</div>";
 
     var template$2 = "<div class=\"user\" @click=\"onClick\" data-xx=\"info\">\n  <span class=\"name\"><slot name=\"name\">{{info.name}}</slot></span>\n  <slot>{{info.fav}}</slot>\n</div>";
 
-    var style = ".user {\n  padding: 50px;\n}\n\n.name {\n  color: red;\n}\n\n:host {\n  border: 1px solid #eee;\n  display: block;\n  margin: 20px;\n}";
+    var style$1 = ".user {\n  padding: 50px;\n}\n\n.name {\n  color: red;\n}\n\n:host {\n  border: 1px solid #eee;\n  display: block;\n  margin: 20px;\n}";
 
     var User = {
         template: template$2,
-        style: style,
+        style: style$1,
         props: {
             info: {}
         },
@@ -876,7 +893,9 @@
 
     var Users = {
         template: template$1,
-        components: { User: User },
+        components: {
+            UserItem: User
+        },
         props: {
             list: []
         },
@@ -921,8 +940,9 @@
 
     var Home = {
         template: template,
+        style: style,
         components: {
-            Users: Users
+            UserList: Users,
         },
         data: {
             users: _,

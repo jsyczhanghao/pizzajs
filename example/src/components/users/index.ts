@@ -3,7 +3,9 @@ import User from '../user';
 
 export default {
   template,
-  components: {User},
+  components: {
+    UserItem: User
+  },
   props: {
     list: []
   },

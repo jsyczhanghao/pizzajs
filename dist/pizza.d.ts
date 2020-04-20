@@ -13,7 +13,7 @@ declare class Pizza extends EventEmitter {
     $componentName: string;
     $mounted: boolean;
     $destroyed: boolean;
-    $el?: HTMLElement | Text | Comment | DocumentFragment;
+    $el?: HTMLElement | DocumentFragment;
     protected _mountElement?: HTMLElement;
     static $$id: number;
     constructor(componentOptions?: OptionsData, options?: any);

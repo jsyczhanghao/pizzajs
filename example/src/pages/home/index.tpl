@@ -1,5 +1,5 @@
 <div>
-  <users 
+  <user-list 
     :list="users" 
     @click="onClickItem" 
   />

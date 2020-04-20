@@ -22,6 +22,7 @@ declare const _default: {
         createComment(comment?: string): Comment;
         insert(parent: HTMLElement, el: any, index: number): any;
         remove(el?: HTMLElement | Text | Comment): void;
+        injectStyle(el: HTMLElement | DocumentFragment, style?: string): boolean;
     };
 };
 export default _default;

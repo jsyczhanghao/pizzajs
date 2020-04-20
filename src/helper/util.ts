@@ -27,7 +27,7 @@ export default {
 
   obj2str(obj: any) {
     if (typeof obj == 'object') {
-      return '{' + Object.keys(obj).map((key: string) => `"${key}": ${this.obj2str(obj[key])}`).join(',') + '}';
+      return '{' + Object.keys(obj).map((key: string) => `'${key}': ${this.obj2str(obj[key])}`).join(',') + '}';
     } else {
       return obj;
     }

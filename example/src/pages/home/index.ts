@@ -1,12 +1,14 @@
 import template from './index.tpl';
+import style from './index.css';
 import list from '../../data/user';
 import Users from '../../components/users';
 
 export default {
   template,
+  style,
 
   components: {
-    Users
+    UserList: Users,
   },
 
   data: {

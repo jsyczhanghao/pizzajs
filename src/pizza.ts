@@ -20,7 +20,7 @@ class Pizza extends EventEmitter {
   $componentName: string;
   $mounted: boolean = false;
   $destroyed: boolean = false;
-  $el?: HTMLElement | Text | Comment | DocumentFragment;
+  $el?: HTMLElement | DocumentFragment;
   protected _mountElement?: HTMLElement;
   static $$id = 0;
 
@@ -151,6 +151,7 @@ class Pizza extends EventEmitter {
     this.$mounted = true;
     this.$emit('hook:mounted');
     this.$emit('hook:$nextTick');
+    helper.dom.injectStyle(this.$el, this.$options.style);
   }
 
   $destroy() {

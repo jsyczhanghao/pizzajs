@@ -11,6 +11,6 @@ export default {
   },
   plugins: [
     typescript({}),
-    //uglifyjs.uglify(),
+    uglifyjs.uglify(),
   ],
 };

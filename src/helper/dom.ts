@@ -64,5 +64,13 @@ export default {
 
   remove(el?: HTMLElement | Text | Comment) {
     el && el.remove();
+  },
+
+  injectStyle(el: HTMLElement | DocumentFragment, style?: string) {
+    if (!style || !el) return false;
+
+    let styleEl = document.createElement('style');
+    styleEl.textContent = style;
+    el.insertBefore(styleEl, el.firstChild);
   }
 }

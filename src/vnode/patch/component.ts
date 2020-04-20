@@ -17,8 +17,15 @@ export default function (now: VNode, old: VNode, context: any): Patch {
   let nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
 
   if (!instance) {
-    now.el = helper.dom.createElement(`${config.logo}-${now.node}`, nodeAttrs);
-    now.el.$root = now.el.attachShadow({ mode: 'open' });
+    let node = `${config.prefixs.component || ''}${now.node}`;
+    now.el = helper.dom.createElement(node, nodeAttrs);
+    
+    try {
+      now.el.$root = now.el.attachShadow({ mode: 'closed' });
+    } catch (e) {
+      throw new Error(`Component[${node}] is not valid, the name must be like [xx-xx]`);
+    }
+    
     instance = new (constructor.get())(now.componentOptions, {
       props: helper.util.clone(now.props),
       context: context,
@@ -27,12 +34,6 @@ export default function (now: VNode, old: VNode, context: any): Patch {
     on(instance, now.events);
     instance.$mount(now.el.$root);
     type = PatchType.ADD;
-
-    if (instance.$options.style) {
-      let style = document.createElement('style');
-      style.textContent = instance.$options.style;
-      now.el.$root.appendChild(style);
-    }
   } else if (!helper.util.same(now.props, instance.$propsData)) {
     now.el = old.el;
     helper.dom.updateElement(now.el, nodeAttrs);

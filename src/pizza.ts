@@ -12,6 +12,7 @@ class Pizza extends EventEmitter {
   $componentId: any;
   $options: Options;
   $propsData: object;
+  $eventsData: object;
   $data: object;
   $vnode: VNode;
   $render: Function;
@@ -32,6 +33,7 @@ class Pizza extends EventEmitter {
     this.$context = options.context;
     this.$componentName = options.componentName;
     this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
+    this.$setEventsData(options.events);
     this._init();
   }
 
@@ -88,6 +90,15 @@ class Pizza extends EventEmitter {
       key in this.$options.props && old !== val && this._invokeWatch(key, this.$propsData[key] = val, old);
     });
     this.$update();
+  }
+
+  $setEventsData(data: object) {
+    this.$offByPrefix(Pizza.$PROPS_EVENT_PREFIX);
+    helper.util.map(this.$eventsData = data || {}, (event: string, name: string) => {
+      this.$on(`${Pizza.$PROPS_EVENT_PREFIX}${name}`, function (...args: any) {
+        this.$context.$invoke(event, ...args);
+      });
+    });
   }
 
   protected _injectHooks() {

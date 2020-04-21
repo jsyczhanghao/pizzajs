@@ -1,6 +1,6 @@
 <div>
   <user-list 
     :list="users" 
-    @click="onClickItem" 
+    @click:item="onUserItemClick" 
   />
 </div>

@@ -201,7 +201,7 @@
             el && el.remove();
         },
         injectStyle: function (el, style) {
-            if (!style)
+            if (!style || !el)
                 return false;
             var styleEl = document.createElement('style');
             styleEl.textContent = style;
@@ -484,18 +484,6 @@
         }
     };
 
-    function on(instance, events) {
-        if (events === void 0) { events = {}; }
-        helper.util.map(events, function (event, name) {
-            instance.$on("" + contructor.get().$PROPS_EVENT_PREFIX + name, function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                this.$invoke.apply(this, __spreadArrays([event], args));
-            });
-        });
-    }
     function patchComponent (now, old, context) {
         var instance = old === null || old === void 0 ? void 0 : old.componentInstance, type;
         var nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
@@ -511,18 +499,23 @@
             instance = new (contructor.get())(now.componentOptions, {
                 props: helper.util.clone(now.props),
                 context: context,
+                events: now.events,
                 componentName: now.node,
             });
-            on(instance, now.events);
             instance.$mount(now.el.$root);
             type = PatchType.ADD;
         }
         else if (!helper.util.same(now.props, instance.$propsData)) {
             now.el = old.el;
             helper.dom.updateElement(now.el, nodeAttrs);
+            instance.$update({
+                props: helper.util.clone(now.props),
+                events: now.events,
+            });
             instance.$setPropsData(helper.util.clone(now.props));
-            instance.$offByPrefix(contructor.get().$PROPS_EVENT_PREFIX);
-            on(instance, now.events);
+            instance.$setEventsData(now.events);
+            // instance.$offByPrefix(constructor.get().$PROPS_EVENT_PREFIX);
+            // on(instance, now.events);
             instance.$update();
             type = PatchType.UPDATE;
         }
@@ -705,6 +698,7 @@
             _this.$context = options.context;
             _this.$componentName = options.componentName;
             _this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
+            _this.$setEventsData(options.events);
             _this._init();
             return _this;
         }
@@ -760,6 +754,20 @@
             });
             this.$update();
         };
+        Pizza.prototype.$setEventsData = function (data) {
+            var _this = this;
+            this.$offByPrefix(Pizza.$PROPS_EVENT_PREFIX);
+            helper.util.map(this.$eventsData = data || {}, function (event, name) {
+                _this.$on("" + Pizza.$PROPS_EVENT_PREFIX + name, function () {
+                    var _a;
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    (_a = this.$context).$invoke.apply(_a, __spreadArrays([event], args));
+                });
+            });
+        };
         Pizza.prototype._injectHooks = function () {
             var _this = this;
             helper.util.map(this.$options.lifetimes, function (fn, lifetime) { return _this.$on("hook:" + lifetime, fn); });
@@ -778,6 +786,7 @@
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
+            console.log(method, args, this);
             return (_a = this[method]).call.apply(_a, __spreadArrays([this], args));
         };
         Pizza.prototype._invokeWatch = function (key, now, old) {
@@ -838,7 +847,7 @@
 
     contructor.set(Pizza);
 
-    var template = "<div>\n  <user-list \n    :list=\"users\" \n    @click=\"onClickItem\" \n  />\n</div>";
+    var template = "<div>\n  <user-list \n    :list=\"users\" \n    @click:item=\"onUserItemClick\" \n  />\n</div>";
 
     var style = "div {\n  font-size: 28px;\n}";
 
@@ -886,7 +895,7 @@
         methods: {
             onClick: function (e) {
                 console.log(e);
-                //this.$emit('click', e);
+                this.$emit('click', e);
             }
         }
     };
@@ -926,7 +935,8 @@
         },
         methods: {
             onClickItem: function (item) {
-                return this.onClick.bind(this, item);
+                this.$emit('click:item', 1, 2, 3);
+                //return this.onClick.bind(this, item);
             },
             onClick: function () {
                 var args = [];

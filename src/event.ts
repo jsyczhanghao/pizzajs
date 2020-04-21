@@ -9,7 +9,7 @@ export default class EventEmitter {
     this.$events[name] = events;
   }
 
-  $emit(name: string, ...args) {
+  $emit(name: string, ...args: any) {
     (this.$events[name] || []).slice(0).forEach((fn: Function) => fn.call(this, ...args));
   }
 
@@ -23,13 +23,13 @@ export default class EventEmitter {
   }
 
   $offByPrefix(name: string) {
-    helper.util.map(this.$events, (events, key) => {
+    helper.util.map(this.$events, (events: [], key: string) => {
       key.indexOf(name) == 0 && this.$off(key);
     });
   }
 
   $once(name: string, fn: Function) {
-    let f = (...args) => {
+    let f = (...args: any) => {
       fn.call(this, ...args);
       this.$off(name, f);
     }

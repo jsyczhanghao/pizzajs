@@ -5,6 +5,7 @@ declare class Pizza extends EventEmitter {
     $componentId: any;
     $options: Options;
     $propsData: object;
+    $eventsData: object;
     $data: object;
     $vnode: VNode;
     $render: Function;
@@ -23,6 +24,7 @@ declare class Pizza extends EventEmitter {
     $set(key: string, value: any): void;
     $get(key: string, _default?: any): any;
     $setPropsData(data: object): void;
+    $setEventsData(data: object): void;
     protected _injectHooks(): void;
     $emit(name: string, ...args: any): void;
     $invoke(method: string, ...args: any): any;

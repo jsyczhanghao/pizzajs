@@ -42,7 +42,8 @@ export default {
 
   methods: {
     onClickItem(item) {
-      return this.onClick.bind(this, item);
+      this.$emit('click:item', 1, 2, 3);
+      //return this.onClick.bind(this, item);
     },
 
     onClick(...args) {

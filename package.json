@@ -1,5 +1,5 @@
 {
-  "name": "pizza",
+  "name": "pizzajs",
   "version": "0.1.0",
   "description": "a mini's engine",
   "main": "dist/pizza.js",

@@ -29,14 +29,8 @@ export default function (now: VNode, old: VNode, context: any): Patch {
   } else if (!helper.util.same(now.props, instance.$propsData)) {
     now.el = old.el;
     helper.dom.updateElement(now.el, nodeAttrs);
-    instance.$update({
-      props: helper.util.clone(now.props),
-      events: now.events,
-    });
     instance.$setPropsData(helper.util.clone(now.props));
     instance.$setEventsData(now.events);
-    // instance.$offByPrefix(constructor.get().$PROPS_EVENT_PREFIX);
-    // on(instance, now.events);
     instance.$update();
     type = PatchType.UPDATE;
   } else {

@@ -1,7 +1,7 @@
 (function (factory) {
     typeof define === 'function' && define.amd ? define(factory) :
     factory();
-}((function () { 'use strict';
+})((function () { 'use strict';
 
     /*! *****************************************************************************
     Copyright (c) Microsoft Corporation. All rights reserved.
@@ -197,8 +197,14 @@
             var children = parent.childNodes;
             return children.length == 0 || children.length < index ? parent.appendChild(el) : parent.insertBefore(el, children[index]);
         },
+        replace: function (old, now) {
+            old.replaceWith(now);
+        },
         remove: function (el) {
             el && el.remove();
+        },
+        isFragment: function (el) {
+            return el.nodeType === 11;
         },
         injectStyle: function (el, style) {
             if (!style || !el)
@@ -362,7 +368,7 @@
             text: comment
         };
     }
-    function pick(vnode) {
+    function pick$1(vnode) {
         var logics = {}, events = {}, props = {}, dataset = {};
         for (var key in vnode.props) {
             var val = vnode.props[key];
@@ -398,10 +404,25 @@
     }
     function nodeSerialize(vnode) {
         var expression;
-        var _a = pick(vnode), logics = _a.logics, events = _a.events, props = _a.props;
+        var _a = pick$1(vnode), logics = _a.logics, events = _a.events, props = _a.props;
         var _for = logics['for'], _if = logics['if'], _elseif = logics['elseif'] || logics['else-if'], _else = logics['else'];
         var index = logics['for-index'] || '$index', item = logics['for-item'] || '$item';
-        expression = "_$n(\"" + vnode.node + "\", {\n      " + (_for && logics['key'] ? 'key: ' + logics['key'] + ',' : '') + "\n      props: " + helper.util.obj2str(props) + ",\n      events: " + helper.util.obj2str(events) + ",\n    }, [" + vnode.children.map(function (child, i) { return serialize(child); }) + "])";
+        var childrenExpression = '[';
+        vnode.children.forEach(function (child, i) {
+            var _a, _b, _c;
+            var info = serialize(child);
+            if ((((_a = info === null || info === void 0 ? void 0 : info.logics) === null || _a === void 0 ? void 0 : _a.else) || ((_b = info.logics) === null || _b === void 0 ? void 0 : _b.elseif)) && !((_c = info.logics) === null || _c === void 0 ? void 0 : _c.for)) {
+                childrenExpression += ' ' + info.expression;
+            }
+            else if (i > 0) {
+                childrenExpression += ', ' + info.expression;
+            }
+            else {
+                childrenExpression += info.expression;
+            }
+        });
+        childrenExpression += ']';
+        expression = "_$n(\"" + vnode.node + "\", {\n      " + (_for && logics['key'] ? 'key: ' + logics['key'] + ',' : '') + "\n      props: " + helper.util.obj2str(props) + ",\n      events: " + helper.util.obj2str(events) + ",\n    }, " + childrenExpression + ")";
         if (_if) {
             expression = _if + " ? " + expression + " : _$e";
         }
@@ -414,20 +435,21 @@
         if (_for) {
             expression = "_$l(" + _for + ", function(" + item + ", " + index + ") { return " + expression + "; })";
         }
-        return expression;
+        return {
+            expression: expression,
+            logics: logics
+        };
     }
     function serialize(vnode) {
-        var expression;
-        if (vnode.node) {
-            expression = nodeSerialize(vnode);
-        }
-        else if (vnode.isComment) {
-            expression = "_$m(" + JSON.stringify(vnode.text) + ")";
+        if (vnode.isComment) {
+            return { expression: "_$m(" + JSON.stringify(vnode.text) + ")" };
         }
         else if (vnode.text) {
-            expression = "_$t(\"" + stringify(vnode.text, true) + "\")";
+            return { expression: "_$t(\"" + stringify(vnode.text, true) + "\")" };
         }
-        return expression;
+        else {
+            return nodeSerialize(vnode);
+        }
     }
     function makeVNodeFn(template, context) {
         if (!template)
@@ -446,7 +468,7 @@
         var computed = helper.util.keys(context.computed);
         var datas = helper.util.keys(typeof context.data == 'function' ? context.data.call({}) : (context.data || {}));
         var vars = props.concat(methods, datas, computed).map(function (key) { return key + " = this." + key; }).join(', ');
-        return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]) + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
+        return (new Function('_$l', '_$n', '_$t', '_$m', '_$e', "\n    return function() {\n      " + (vars != '' ? "var " + vars + ";" : '') + ";\n      _$n = _$n.bind(this);\n      return " + serialize(data.children[0]).expression + ";\n    };\n  "))($l, $n, $t, $m, EMPTY_VNODE);
     }
 
     var Options = /** @class */ (function () {
@@ -472,6 +494,7 @@
         PatchType[PatchType["UPDATE"] = 2] = "UPDATE";
         PatchType[PatchType["BATCH"] = 3] = "BATCH";
         PatchType[PatchType["NONE"] = 4] = "NONE";
+        PatchType[PatchType["REPLACE"] = 5] = "REPLACE";
     })(PatchType || (PatchType = {}));
 
     var constructor;
@@ -487,8 +510,8 @@
     function patchComponent (now, old, context) {
         var instance = old === null || old === void 0 ? void 0 : old.componentInstance, type;
         var nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
-        if (!instance) {
-            var node = "" + ( '') + now.node;
+        if (old.node !== now.node) {
+            var node = "" + ('') + now.node;
             now.el = helper.dom.createElement(node, nodeAttrs);
             try {
                 now.el.$root = now.el.attachShadow({ mode: 'closed' });
@@ -503,19 +526,19 @@
                 componentName: now.node,
             });
             instance.$mount(now.el.$root);
-            type = PatchType.ADD;
+            if (!old.el) {
+                type = PatchType.ADD;
+            }
+            else {
+                type = PatchType.REPLACE;
+                instance && instance.$destroy();
+            }
         }
         else if (!helper.util.same(now.props, instance.$propsData)) {
             now.el = old.el;
             helper.dom.updateElement(now.el, nodeAttrs);
-            instance.$update({
-                props: helper.util.clone(now.props),
-                events: now.events,
-            });
             instance.$setPropsData(helper.util.clone(now.props));
             instance.$setEventsData(now.events);
-            // instance.$offByPrefix(constructor.get().$PROPS_EVENT_PREFIX);
-            // on(instance, now.events);
             instance.$update();
             type = PatchType.UPDATE;
         }
@@ -542,12 +565,18 @@
                 context.$invoke.apply(context, __spreadArrays([event], args));
             };
         });
-        if (!old.el) {
+        if (now.node !== old.node) {
             now.el = helper.dom.createElement(now.node, now.props, events);
-            type = PatchType.ADD;
+            if (!old.el) {
+                type = PatchType.ADD;
+            }
+            else {
+                type = PatchType.REPLACE;
+                old.componentInstance && old.componentInstance.$destroy();
+            }
         }
         else if (!helper.util.same(now.props, old.props)) {
-            now.el = helper.dom.updateElement(old.el, now.props, event);
+            now.el = helper.dom.updateElement(old.el, now.props, events);
             type = PatchType.UPDATE;
         }
         else {
@@ -596,9 +625,14 @@
     function del(old) {
         if (!old)
             return false;
+        if (helper.dom.isFragment(old.el)) {
+            old.children.forEach(del);
+        }
+        else {
+            helper.dom.remove(old.el);
+        }
         old.componentInstance && old.componentInstance.$destroy();
-        helper.dom.remove(old.el);
-        old.el = null;
+        old.el = old.componentInstance = null;
         return old;
     }
     function children2keys(children) {
@@ -610,31 +644,48 @@
         });
         return keysChildren;
     }
-    function pick$1(children, key) {
+    function pick(children, key) {
         var child = children[key];
         children[key] = null;
         return child;
     }
     function patchChildren(now, old, context) {
         var elIndex = 0, oldChildren = children2keys((old === null || old === void 0 ? void 0 : old.children) || []);
-        now.el.$$fc = 0;
         helper.util.map(now.children, function (child, i) {
-            var oldChild = pick$1(oldChildren, child.key || i);
+            var _a;
+            var oldChild = pick(oldChildren, child.key || i);
             var patch = patchVNode(child, oldChild, context);
             switch (patch.type) {
                 case PatchType.BATCH:
-                    elIndex += child.el.$$fc;
-                    helper.dom.insert(now.el, child.el, elIndex);
-                    elIndex += child.el.childNodes.length;
+                    // if empty, by fragment create
+                    if (!((_a = oldChild === null || oldChild === void 0 ? void 0 : oldChild.children) === null || _a === void 0 ? void 0 : _a.length)) {
+                        var len = child.children.length;
+                        helper.dom.insert(now.el, child.el, elIndex);
+                        elIndex += len;
+                    }
+                    else {
+                        // else insert one by one
+                        child.children.forEach(function (item) {
+                            helper.dom.insert(now.el, item.el, elIndex++);
+                        });
+                    }
                     return;
+                case PatchType.REPLACE:
+                    if (helper.dom.isFragment(oldChild.el)) {
+                        helper.dom.insert(now.el, child.el, elIndex);
+                        elIndex -= oldChild.children.length;
+                        del(oldChild);
+                    }
+                    else {
+                        helper.dom.replace(oldChild.el, child.el);
+                        del(oldChild);
+                    }
+                    break;
                 case PatchType.DEL:
                     del(oldChild);
                     return;
                 case PatchType.ADD:
                     helper.dom.insert(now.el, child.el, elIndex);
-                    break;
-                default:
-                    now.el.$$fc++;
                     break;
             }
             elIndex++;
@@ -671,7 +722,7 @@
             else {
                 patch = { vnode: now, type: PatchType.NONE };
             }
-            patchChildren(now, old, context);
+            patchChildren(now, patch.type === PatchType.REPLACE ? {} : old, context);
         } while (0);
         return patch;
     }
@@ -681,9 +732,6 @@
     }
 
     var COMPONENTS = {};
-    var $update = helper.util.throttle(function () {
-        this.$forceUpdate();
-    }, 0);
     var Pizza = /** @class */ (function (_super) {
         __extends(Pizza, _super);
         function Pizza(componentOptions, options) {
@@ -698,6 +746,7 @@
             _this.$context = options.context;
             _this.$componentName = options.componentName;
             _this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
+            _this.$update = helper.util.throttle(_this.$forceUpdate.bind(_this), 0);
             _this.$setEventsData(options.events);
             _this._init();
             return _this;
@@ -711,7 +760,7 @@
                 this.$data = this.$options.data.call(this);
             }
             else {
-                this.$data = this.$options.data;
+                this.$data = __assign({}, this.$options.data);
             }
             helper.util.proxy(this, this.$data, this.$get, this.$set);
             helper.util.proxy(this, this.$options.computed, this.$get);
@@ -721,14 +770,14 @@
             get: function () {
                 return this.$options.methods;
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(Pizza.prototype, "$components", {
             get: function () {
                 return __assign(__assign({}, COMPONENTS), this.$options.components);
             },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Pizza.prototype.$set = function (key, value) {
@@ -786,15 +835,11 @@
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            console.log(method, args, this);
             return (_a = this[method]).call.apply(_a, __spreadArrays([this], args));
         };
         Pizza.prototype._invokeWatch = function (key, now, old) {
             var fn = this.$options.watch[key];
             fn && fn.call(this, now, old);
-        };
-        Pizza.prototype.$update = function () {
-            $update.call(this);
         };
         Pizza.prototype.$forceUpdate = function () {
             if (!this.$mounted || this.$destroyed)
@@ -847,9 +892,9 @@
 
     contructor.set(Pizza);
 
-    var template = "<div>\n  <user-list \n    :list=\"users\" \n    @click:item=\"onUserItemClick\" \n  />\n</div>";
+    var template$2 = "<user-list \n  :list=\"users\" \n  @click:item=\"onUserItemClick\" \n/>";
 
-    var style = "div {\n  font-size: 28px;\n}";
+    var style$1 = "div {\n  font-size: 12px;\n}";
 
     var arr = [
       {
@@ -864,13 +909,13 @@
 
       {
         name: 'C',
-        fav: ['eat', 'play']
+        fav: ['eat', 'dance']
       }
     ];
 
     let _ = [];
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 1; i++) {
       arr.forEach((item, j) => {
         _.push({
           key: 'i' + i + 'j' + j,
@@ -880,21 +925,38 @@
       });
     }
 
-    var template$1 = "<div style=\"height: 100%;\">\n  <user-item v-for=\"list\" v-for-item=\"$item\" :info=\"$item\" v-for-index=\"index\" v-key=\"$item.key\" @click=\"onClickItem\">\n    <!-- <span slot=\"name\">{{$item.name}}</span> -->\n   {{$item.fav}}\n  </user-item>\n</div>";
+    var template$1 = "<div style=\"height: 100%;\">\n  <div v-if=\"show\">1</div>\n  <user-item v-for=\"list\" v-for-item=\"$item\" :info=\"$item\" v-for-index=\"index\" v-key=\"index\" :xxx=\"index\" @click=\"onClickItem\" v-if=\"!show\">\n    <!-- <span slot=\"name\">{{$item.name}}</span> -->\n   {{$item.fav}}\n  </user-item>\n\n  <div v-if=\"!show\">2</div>\n  <user-item v-for=\"list\" v-for-item=\"$item\" :info=\"$item\" v-for-index=\"index\" :xxx=\"index\" @click=\"onClickItem\" v-if=\"show || index % 2 === 1\">\n    <!-- <span slot=\"name\">{{$item.name}}</span> -->\n   {{$item.fav}}\n  </user-item>\n  <div>3</div>\n</div>";
 
-    var template$2 = "<div class=\"user\" @click=\"onClick\" data-xx=\"info\">\n  <span class=\"name\"><slot name=\"name\">{{info.name}}</slot></span>\n  <slot>{{info.fav}}</slot>\n</div>";
+    var template = "<section class=\"user\" @click=\"onClick\" data-xx=\"user\">\n  <span class=\"name\"><slot name=\"name\">{{user.key}} - {{user.name}}</slot></span>\n  <slot>{{user.fav}}</slot>\n</section>";
 
-    var style$1 = ".user {\n  padding: 50px;\n}\n\n.name {\n  color: red;\n}\n\n:host {\n  border: 1px solid #eee;\n  display: block;\n  margin: 20px;\n}";
+    var style = ".user {\n  padding: 10px;\n}\n\n.name {\n  color: red;\n}\n\n:host {\n  border: 1px solid #eee;\n  display: block;\n  margin: 10px;\n}";
 
     var User = {
-        template: template$2,
-        style: style$1,
+        template: template,
+        style: style,
         props: {
             info: {}
         },
+        data: function () {
+            return {
+                user: this.info
+            };
+        },
+        watch: {
+            info: function (v) {
+                this.user = v;
+            }
+        },
+        lifetimes: {
+        // mounted() {
+        //   setTimeout(() => {
+        //     this.user = this.info;
+        //   }, 5000);
+        // }
+        },
         methods: {
             onClick: function (e) {
-                console.log(e);
+                this.user = __assign(__assign({}, this.user), { name: Date.now() });
                 this.$emit('click', e);
             }
         }
@@ -910,7 +972,9 @@
         },
         data: function () {
             return {
-                users: this.list
+                show: true,
+                users: this.list,
+                q: 0
             };
         },
         watch: {
@@ -918,7 +982,7 @@
             //   console.log(now, old);
             // },
             list: function (now, old) {
-                console.log(now, old);
+                //console.log(now, old);
             }
         },
         lifetimes: {
@@ -926,6 +990,14 @@
                 console.log('update');
             },
             mounted: function () {
+                var _this = this;
+                setTimeout(function () {
+                    _this.show = false;
+                    // this.q = 1;
+                    // setTimeout(() => {
+                    //   this.show = true;
+                    // }, 5000);
+                }, 5000);
                 // setTimeout(() => {
                 //   let start = Date.now();
                 //   this.users = this.users.slice(1);
@@ -949,8 +1021,8 @@
     };
 
     var Home = {
-        template: template,
-        style: style,
+        template: template$2,
+        style: style$1,
         components: {
             UserList: Users,
         },
@@ -960,9 +1032,8 @@
         },
         lifetimes: {
             mounted: function () {
-                var _this = this;
                 setTimeout(function () {
-                    _this.users = [].concat(_this.users, _this.users);
+                    //this.users = [].concat(this.users.slice(0), this.users.slice(0));
                     // setTimeout(() => {
                     //   this.users = this.users.slice(2);
                     // }, 2000);
@@ -984,6 +1055,7 @@
         }
     };
 
-    new Pizza(Home).$mount(document.getElementById('app'));
+    new Pizza(Home).$mount(document.getElementById('app1'));
+    // new Pizza(Home).$mount(document.getElementById('app2'));
 
-})));
+}));

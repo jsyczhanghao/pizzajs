@@ -7,8 +7,8 @@ import constructor from '../../contructor';
 export default function (now: VNode, old: VNode, context: any): Patch {
   let instance: any = old?.componentInstance, type: PatchType;
   let nodeAttrs = helper.util.pick(now.props, ['slot', 'style', 'class']);
-
-  if (!instance) {
+  
+  if (old.node !== now.node) {
     let node = `${config.prefixs.component || ''}${now.node}`;
     now.el = helper.dom.createElement(node, nodeAttrs);
     
@@ -25,7 +25,13 @@ export default function (now: VNode, old: VNode, context: any): Patch {
       componentName: now.node,
     });
     instance.$mount(now.el.$root);
-    type = PatchType.ADD;
+
+    if (!old.el) {
+      type = PatchType.ADD;
+    } else {
+      type = PatchType.REPLACE;
+      instance && instance.$destroy();
+    }
   } else if (!helper.util.same(now.props, instance.$propsData)) {
     now.el = old.el;
     helper.dom.updateElement(now.el, nodeAttrs);

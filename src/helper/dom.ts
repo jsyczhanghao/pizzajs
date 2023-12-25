@@ -62,8 +62,16 @@ export default {
     return children.length == 0 || children.length < index ? parent.appendChild(el) : parent.insertBefore(el, children[index]);
   },
 
+  replace(old: HTMLElement, now: HTMLElement) {
+    old.replaceWith(now);
+  },
+
   remove(el?: HTMLElement | Text | Comment) {
     el && el.remove();
+  },
+
+  isFragment(el: HTMLElement) {
+    return el.nodeType === 11;
   },
 
   injectStyle(el: HTMLElement | DocumentFragment, style?: string) {

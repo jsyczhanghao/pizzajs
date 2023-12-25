@@ -1,5 +1,5 @@
 .user {
-  padding: 50px;
+  padding: 10px;
 }
 
 .name {
@@ -9,5 +9,5 @@
 :host {
   border: 1px solid #eee;
   display: block;
-  margin: 20px;
+  margin: 10px;
 }

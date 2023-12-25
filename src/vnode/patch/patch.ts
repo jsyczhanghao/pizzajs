@@ -6,6 +6,7 @@ enum PatchType {
   UPDATE,
   BATCH,
   NONE,
+  REPLACE,
 }
 
 interface Patch {

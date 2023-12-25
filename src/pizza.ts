@@ -4,9 +4,6 @@ import Options, { OptionsData } from './options';
 import { VNode, patchVNode } from './vnode';
 
 const COMPONENTS = {};
-const $update = helper.util.throttle(function(){
-  this.$forceUpdate();
-}, 0)
 
 class Pizza extends EventEmitter {
   $componentId: any;
@@ -21,6 +18,7 @@ class Pizza extends EventEmitter {
   $componentName: string;
   $mounted: boolean = false;
   $destroyed: boolean = false;
+  $update: Function;
   $el?: HTMLElement | DocumentFragment;
   protected _mountElement?: HTMLElement;
   static $$id = 0;
@@ -33,6 +31,7 @@ class Pizza extends EventEmitter {
     this.$context = options.context;
     this.$componentName = options.componentName;
     this.$componentId = options.componentId ? options.componentId : Pizza.$$id++;
+    this.$update = helper.util.throttle(this.$forceUpdate.bind(this), 0);
     this.$setEventsData(options.events);
     this._init();
   }
@@ -49,7 +48,9 @@ class Pizza extends EventEmitter {
     if (typeof this.$options.data == 'function') {
       this.$data = this.$options.data.call(this);
     } else {
-      this.$data = this.$options.data;
+      this.$data = {
+        ...this.$options.data
+      };
     }
 
     helper.util.proxy(this, this.$data, this.$get, this.$set);
@@ -117,10 +118,6 @@ class Pizza extends EventEmitter {
   private _invokeWatch(key: string, now: any, old: any) {
     let fn = this.$options.watch[key];
     fn && fn.call(this, now, old);
-  }
-
-  $update() {
-    $update.call(this);
   }
 
   $forceUpdate() {

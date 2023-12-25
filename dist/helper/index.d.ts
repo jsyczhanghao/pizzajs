@@ -21,7 +21,9 @@ declare const _default: {
         createText(text: string): Text;
         createComment(comment?: string): Comment;
         insert(parent: HTMLElement, el: any, index: number): any;
+        replace(old: HTMLElement, now: HTMLElement): void;
         remove(el?: HTMLElement | Text | Comment): void;
+        isFragment(el: HTMLElement): boolean;
         injectStyle(el: HTMLElement | DocumentFragment, style?: string): boolean;
     };
 };

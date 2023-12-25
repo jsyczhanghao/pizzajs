@@ -1,6 +1,4 @@
-<div>
-  <user-list 
-    :list="users" 
-    @click:item="onUserItemClick" 
-  />
-</div>
+<user-list 
+  :list="users" 
+  @click:item="onUserItemClick" 
+/>

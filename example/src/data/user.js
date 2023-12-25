@@ -11,13 +11,13 @@ var arr = [
 
   {
     name: 'C',
-    fav: ['eat', 'play']
+    fav: ['eat', 'dance']
   }
 ];
 
 let _ = [];
 
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 1; i++) {
   arr.forEach((item, j) => {
     _.push({
       key: 'i' + i + 'j' + j,

@@ -74,11 +74,27 @@ function nodeSerialize(vnode: VNode) {
   let _for = logics['for'], _if = logics['if'], _elseif = logics['elseif'] || logics['else-if'], _else = logics['else'];
   let index = logics['for-index'] || '$index', item = logics['for-item'] || '$item';
 
+  let childrenExpression = '[';
+
+  vnode.children.forEach((child, i: number) => {
+    let info: any= serialize(child);
+
+    if ((info?.logics?.else || info.logics?.elseif) && !info.logics?.for) {
+      childrenExpression += ' ' + info.expression;
+    } else if (i > 0) {
+      childrenExpression += ', ' + info.expression;
+    } else {
+      childrenExpression += info.expression;
+    }
+  });
+
+  childrenExpression += ']';
+
   expression = `_$n("${vnode.node}", {
       ${_for && logics['key'] ? 'key: ' + logics['key'] + ',' : ''}
       props: ${helper.util.obj2str(props)},
       events: ${helper.util.obj2str(events)},
-    }, [${vnode.children.map((child, i) => serialize(child))}])`;
+    }, ${childrenExpression})`;
 
   if (_if) {
     expression = `${_if} ? ${expression} : _$e`;
@@ -92,21 +108,20 @@ function nodeSerialize(vnode: VNode) {
     expression = `_$l(${_for}, function(${item}, ${index}) { return ${expression}; })`;
   }
 
-  return expression;
+  return {
+    expression,
+    logics
+  };
 }
 
-function serialize(vnode: VNode): string {
-  let expression: string;
-
-  if (vnode.node) {
-    expression = nodeSerialize(vnode);
-  } else if (vnode.isComment) {
-    expression = `_$m(${JSON.stringify(vnode.text)})`;
+function serialize(vnode: VNode) {
+  if (vnode.isComment) {
+    return { expression: `_$m(${JSON.stringify(vnode.text)})` };
   } else if (vnode.text) {
-    expression = `_$t("${stringify(vnode.text, true)}")`;
+    return { expression: `_$t("${stringify(vnode.text, true)}")` };
+  } else {
+    return nodeSerialize(vnode);
   }
-
-  return expression;
 }
 
 export default function makeVNodeFn(template: string, context: any): any {
@@ -133,7 +148,7 @@ export default function makeVNodeFn(template: string, context: any): any {
     return function() {
       ${vars != '' ? `var ${vars};` : ''};
       _$n = _$n.bind(this);
-      return ${serialize(data.children[0])};
+      return ${serialize(data.children[0]).expression};
     };
   `))($l, $n, $t, $m, EMPTY_VNODE);
 }

@@ -8,9 +8,15 @@ import patchComment from './comment';
 
 function del(old) {
   if (!old) return false;
+
+  if (helper.dom.isFragment(old.el)) {
+    old.children.forEach(del);
+  } else {
+    helper.dom.remove(old.el);
+  }
+
   old.componentInstance && old.componentInstance.$destroy();
-  helper.dom.remove(old.el);
-  old.el = null;
+  old.el = old.componentInstance = null;
   return old;
 }
 
@@ -33,8 +39,7 @@ function pick(children, key: string | number) {
 }
 
 function patchChildren(now: VNode, old: VNode, context: any) {
-  let elIndex = 0, oldChildren = children2keys(old?.children || []), template: any;
-  now.el.$$fc = 0;
+  let elIndex = 0, oldChildren = children2keys(old?.children || []);
 
   helper.util.map(now.children, (child: VNode, i: number) => {
     let oldChild = pick(oldChildren, child.key || i);
@@ -42,10 +47,32 @@ function patchChildren(now: VNode, old: VNode, context: any) {
 
     switch (patch.type) {
       case PatchType.BATCH:
-        elIndex += child.el.$$fc;
-        helper.dom.insert(now.el, child.el, elIndex);
-        elIndex += child.el.childNodes.length;
+        // if empty, by fragment create
+        if (!oldChild?.children?.length) {
+          let len = child.children.length;
+          helper.dom.insert(now.el, child.el, elIndex);
+          elIndex += len;
+        } else {
+          // else insert one by one
+          child.children.forEach((item) => {
+            helper.dom.insert(now.el, item.el, elIndex++);
+          });
+        }
+
         return;
+
+      case PatchType.REPLACE:
+        if (helper.dom.isFragment(oldChild.el)) {
+          helper.dom.insert(now.el, child.el, elIndex);
+          elIndex -= oldChild.children.length;
+          del(oldChild);
+        } else {
+          
+          helper.dom.replace(oldChild.el, child.el);
+          del(oldChild);
+        }
+
+        break;
 
       case PatchType.DEL:
         del(oldChild);
@@ -56,7 +83,6 @@ function patchChildren(now: VNode, old: VNode, context: any) {
         break;
 
       default:
-        now.el.$$fc++;
         break;
     }
 
@@ -91,7 +117,7 @@ function patchVNode(now: VNode, old: VNode = {}, context: any): Patch {
       patch = { vnode: now, type: PatchType.NONE };
     }
 
-    patchChildren(now, old, context);
+    patchChildren(now, patch.type === PatchType.REPLACE ? {} : old, context);
   } while (0);
 
   return patch;

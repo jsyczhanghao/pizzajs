@@ -14,6 +14,7 @@ declare class Pizza extends EventEmitter {
     $componentName: string;
     $mounted: boolean;
     $destroyed: boolean;
+    $update: Function;
     $el?: HTMLElement | DocumentFragment;
     protected _mountElement?: HTMLElement;
     static $$id: number;
@@ -29,7 +30,6 @@ declare class Pizza extends EventEmitter {
     $emit(name: string, ...args: any): void;
     $invoke(method: string, ...args: any): any;
     private _invokeWatch;
-    $update(): void;
     $forceUpdate(): boolean;
     $nextTick(fn: Function): void;
     protected _render(): boolean;

@@ -19,7 +19,7 @@ export default {
   lifetimes: {
     mounted() {
       setTimeout(() => {
-        this.users = [].concat(this.users, this.users);
+        //this.users = [].concat(this.users.slice(0), this.users.slice(0));
         // setTimeout(() => {
         //   this.users = this.users.slice(2);
         // }, 2000);

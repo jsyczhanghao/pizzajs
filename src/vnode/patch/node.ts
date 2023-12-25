@@ -12,11 +12,17 @@ export default function (now: VNode, old: VNode, context: any): Patch {
     };
   });
 
-  if (!old.el) {
+  if (now.node !== old.node) {
     now.el = helper.dom.createElement(now.node, now.props, events);
-    type = PatchType.ADD;
+
+    if (!old.el) {
+      type = PatchType.ADD;
+    } else {
+      type = PatchType.REPLACE;
+      old.componentInstance && old.componentInstance.$destroy();
+    }
   } else if (!helper.util.same(now.props, old.props)) {
-    now.el = helper.dom.updateElement(old.el, now.props, event);
+    now.el = helper.dom.updateElement(old.el, now.props, events);
     type = PatchType.UPDATE;
   } else {
     now.el = old.el;

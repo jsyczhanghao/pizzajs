@@ -12,7 +12,9 @@ export default {
 
   data() {
     return {
-      users: this.list
+      show: true,
+      users: this.list,
+      q: 0
     };
   },
 
@@ -22,7 +24,7 @@ export default {
     // },
 
     list(now, old) {
-      console.log(now, old);
+      //console.log(now, old);
     }
   },
 
@@ -32,6 +34,14 @@ export default {
     },
 
     mounted() {
+      setTimeout(() => {
+          this.show = false;
+          // this.q = 1;
+
+          // setTimeout(() => {
+          //   this.show = true;
+          // }, 5000);
+      }, 5000);
       // setTimeout(() => {
       //   let start = Date.now();
       //   this.users = this.users.slice(1);
